@@ -1,0 +1,42 @@
+
+Usage:	python main_QST.py`
+
+--------------------------------------------------------------------------------------------
+
+Input:		[details in the comment of main_QST.py]
+
+1. system parameters
+
+	Nk    =  number of qubits
+	m     =  number of sampled Pauli matrices
+	mea   =  number of shot measurements
+
+		  [usage]   either directly define them 
+	    		    or     call  basic_sys_setting(Choose) @  Input_setting.py
+
+	StateName  =  'GHZ',  'Had',  'rand'   (where 'GHZ' and 'Had' are pure states)
+
+	Nr    	=   number of rank  [  fixed to 1   for  'GHZ', 'Had'   ]
+	Noise 	=   noise model     [  only for exact results now, i.e. not really implemented in the code)     (  0 for pure states,   [0, 0, 0.1]  for 'rand')
+
+2.  running cases record, i.e.  labelling the run cases 
+
+	StVer   =  control of the 'rand' state generation   ( = 0  for pure states;  'rand': [which version of generated data, to generate or not), (eg)  [1, 0] = [version 1, do not generate] )
+
+	version =  [version of generated states, version of generated measurement,  Noise]
+
+
+3. program control parameters for projectors | measurement
+
+	Pj_method      =  which method to generate | load projectors   (default = 1)
+
+	mea_method     =  which method to generate | load measurements (default = 1)
+
+	measure_method =  to use parallel generation of measurement ( =1: no parallel,  =3: parallel [defaul])
+
+--------------------------------------------------------------------------------------------
+
+
+
+
+
