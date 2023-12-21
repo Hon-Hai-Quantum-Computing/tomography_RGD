@@ -3,4 +3,4 @@ Use the Optimization method of Riemannian Gradient Descent (RGD) to do the quant
 
 This program implements the RGD method described in arxiv.
 
-Also the MiFGD method is compared.
+Also the Momentum-inspired Factored Gradient Descent (MiFGD) method is compared.
