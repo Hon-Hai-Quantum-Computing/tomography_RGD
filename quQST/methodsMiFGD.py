@@ -1,6 +1,8 @@
 
 
 import numpy as np
+from numpy import linalg as LA
+from scipy.linalg import interpolative as interp
 
 #from mpi4py import MPI
 from qiskit.quantum_info import state_fidelity
@@ -58,6 +60,146 @@ class LoopMiFGD:
 		self.U0 = stateU
 
 		return stateU
+
+
+	def est_Estimation_specNrm(self, stateU):
+		ZZ0 =  stateU @ stateU.T.conj()
+		nZ0_specN = interp.estimate_spectral_norm(ZZ0)
+
+		Amea1 = np.zeros(self.num_labels)
+		#Amea2 = np.zeros(self.num_labels)
+		cnt   = np.arange(self.num_labels)
+		for ii, projector, measurement in zip(*[cnt, self.projector_list, self.measurement_list]):
+			projU = projector.dot(stateU)
+			trAUU = np.trace(np.dot(stateU.T.conj(), projU)).real
+
+			Amea1[ii] = trAUU - measurement
+			#Amea2[ii] = np.trace(projector.matrix @ZZ0).real - measurement
+			#print(ii, measurement)
+
+		AAz = self.A_dagger_InputZ(Amea1)
+		nAA_specN = interp.estimate_spectral_norm(AAz)
+
+		DeNom_SN = 11/10 * nZ0_specN + nAA_specN
+		etaSpecN = 1/(4*DeNom_SN)
+
+		#print(' nZ0 = {}, nAA = {}'.format(nZ0, nAA))
+		#print(' DeNom = {}, etaTh = {}'.format(DeNom, etaTh))
+
+		#self.ZZ0     = ZZ0
+		self.AmeaZZ0 = Amea1 
+		
+		self.etaSpecN   = etaSpecN
+		self.nZ0_specN  = nZ0_specN
+		self.nAA_specN  = nAA_specN
+		self.DeNom_SN   = DeNom_SN
+
+
+	def eta_Estimation(self, stateU):
+		ZZ0 =  stateU @ stateU.T.conj()
+		nZ0 =  LA.norm(ZZ0)
+
+		Amea1 = np.zeros(self.num_labels)
+		#Amea2 = np.zeros(self.num_labels)
+		cnt   = np.arange(self.num_labels)
+		for ii, projector, measurement in zip(*[cnt, self.projector_list, self.measurement_list]):
+			projU = projector.dot(stateU)
+			trAUU = np.trace(np.dot(stateU.T.conj(), projU)).real
+
+			Amea1[ii] = trAUU - measurement
+			#Amea2[ii] = np.trace(projector.matrix @ZZ0).real - measurement
+			#print(ii, measurement)
+
+		AAz = self.A_dagger_InputZ(Amea1)
+		nAA = LA.norm(AAz)
+
+		DeNom = 11/10 * nZ0 + nAA
+		etaTh = 1/(4*DeNom)
+
+		#print(' nZ0 = {}, nAA = {}'.format(nZ0, nAA))
+		#print(' DeNom = {}, etaTh = {}'.format(DeNom, etaTh))
+
+		#self.ZZ0     = ZZ0
+		self.AmeaZZ0 = Amea1 
+		
+		self.etaTh = etaTh
+		self.nZ0   = nZ0
+		self.nAA   = nAA
+		self.DeNom = DeNom
+
+
+	def A_dagger_InputZ(self, InputZ):
+		"""   A^+(y)
+		"""
+		YY = np.zeros((self.num_elements, self.num_elements))
+
+		for zz, proj in zip(InputZ, self.projector_list):
+			YY += zz * proj.matrix
+
+		return YY
+
+
+	def A_dagger_y(self):
+		"""   A^+(y),  y is the measurement input
+		"""
+		YY = np.zeros((self.num_elements, self.num_elements))
+
+		for yP, proj in zip(self.measurement_list, self.projector_list):
+			YY += yP * proj.matrix
+
+		return YY
+
+	def ProjPSD(self, Rho):
+		val, eigV = np.linalg.eig(Rho)
+
+		if np.allclose(val.imag, 0):
+			val = val.real
+		
+		#self.val  = val
+		#self.eigV = eigV 
+
+		#X0_reconstruct = eigV @ np.diag(val) @ eigV.T.conj()
+		#if np.allclose(X0_reconstruct, self.X0):
+		#	print(' the Hermitian decomposition is corect')
+		#else:
+		#	print(' sth wrong in the Hermitian decomposition')
+
+		pos   = val > 0
+		posID = np.arange(self.num_elements)[pos]
+
+		# --------------  project to PSD  ------------------------- #
+		Valpos = val[posID]			#  positive eigen value
+		posEV  = eigV[:, posID]		#  corresponding eigV with val > 0
+
+		sortID = np.argsort(Valpos)[::-1]	#  from large to small
+		ID_Nr  = sortID[:self.Nr]			#  only keep the largest Nr elem
+
+		Val_Nr = Valpos[ID_Nr]			#  Nr positive eig-values
+		EV_Nr  = posEV[:, ID_Nr]		#  the corresponding Eig Vec
+
+		#sqrVal = np.sqrt(Valpos)						#  keep all positive
+		#U0     = posEV @  np.diag(sqrVal)				#  keep all positive
+		#X1 = posEV @ np.diag(Valpos) @ posEV.T.conj()	#  keep all positive
+		#X2 = U0 @ U0.T.conj()							#  keep all positive
+
+		coef   = np.sqrt(10/11)							#  np.sqrt(1/L_hat)
+
+		sqrVal = np.sqrt(Val_Nr)						#  keep only Nr elem
+		
+		U0     = EV_Nr @ np.diag(sqrVal*coef)			#  keep only Nr elem
+		#X1 = EV_Nr @ np.diag(Val_Nr) @ EV_Nr.T.conj()	#  X1 should = X2
+		#X2 = U0 @ U0.T.conj()							#  X1 should = X2
+
+		#self.sortID = sortID		
+		#self.ID_Nr  = ID_Nr
+
+		self.Val_Nr = Val_Nr		#   Nr positive Eig Value
+		self.Valpos = Valpos		#  all positive Eig Value
+		#self.posEV  = posEV			#  all positive Eig vector
+		#self.EV_Nr  = EV_Nr			#   Nr positive Eig vector
+		self.U0     = np.array(U0)
+
+		return np.array(U0)
 
 	def initialize(self, stateU):
 
@@ -123,22 +265,45 @@ class LoopMiFGD:
 
 		self.InitX            = InitX
 		self.step_Time        = {}
-		
+		self.Init_Time        = {}
+
 		tt1 = time.time()
 		
 		if InitX == 0:
-			stateU = self.Rnd_stateU()
+			stateU      = self.Rnd_stateU()
+
+		elif InitX == 1:
+			Adgr_y  = self.A_dagger_y()
+			stateU  = self.ProjPSD(Adgr_y)			
 
 		elif InitX == -1:
 			stateU = self.Load_Init(Ld)
 
+		#print(' stateU = {}'.format(stateU))
+		tt2 = time.time()
+
+		if self.Option == 1:
+			self.eta_Estimation(stateU)
+			self.eta  =  self.etaTh
+		elif self.Option == 2:
+			self.est_Estimation_specNrm(stateU)
+			self.eta  =  self.etaSpecN
+
+
+		tt3 = time.time()
 		self.initialize(stateU)
 
-		tt2 = time.time()
-		self.step_Time[-1] = tt2 - tt1
+		tt4 = time.time()
+		self.step_Time[-1] = tt4 - tt1
 		
+		self.Init_Time['X0']   = tt2 - tt1
+		self.Init_Time['eta']  = tt3 - tt2
+		self.Init_Time['momU'] = tt4 - tt3
+		self.Init_Time['Tini'] = tt4 - tt1
+
+
 		print(' --------  X0  --> (-1)-th iteration  [ InitX = {} ] \n'.format(InitX))
-		print('      X0 step (MiFGD)      -->  time = {}\n'.format(tt2 - tt1))
+		print('      X0 step (MiFGD)      -->  time = {}\n'.format(tt4 - tt1))
 
 		X0_target_Err = np.linalg.norm(self.Xk - self.target_DM, 'fro')
 		self.Target_Err_Xk.append(X0_target_Err)			#  for X0
@@ -198,7 +363,7 @@ class LoopMiFGD:
 			#print(' || Xk - Xk(old) ||_F = {}'.format(np.linalg.norm(self.Xk - self.Xk_old)))
 			#print(' | psi - pis(old) | = {}'.format(np.linalg.norm(self.stateU - self.previous_stateU)))
 
-			if self.target_DM is not None:				# Ming-Chien adding
+			if self.target_DM is not None:				# adding for checking the target error
 
 				##  from  LA.norm(DM_Wst - rho.full())		need  two matrices
 
@@ -263,23 +428,25 @@ class BasicWorker(WorkerParm, LoopMiFGD):
 	(where UU^* = rho = density matrix)
 	'''
 	def __init__(self,
-				 params_dict, input_S):
-#				 params_dict):
+#				 params_dict, input_S):
+				 params_dict):
 		
 		process_idx   = 0
 		num_processes = 1
 
 		eta           = params_dict['eta']		# for MiFGD		
 		mu            = params_dict.get('mu', 0.0)
+		Option        = params_dict.get('Option', 0)
 
-		self.eta      = eta   					# step size / learning rate  (for MiFGD)
-		self.mu       = mu   # MiFGD  momentum parameter (large: more acceleration)
+		self.eta      = eta   		# step size / learning rate  (for MiFGD)
+		self.mu       = mu   		# MiFGD momentum parameter (large: more acceleration)
+		self.Option   = Option
 
 		WorkerParm.__init__(self,
 						process_idx,
 						num_processes,
-						params_dict, input_S)
-#						params_dict)
+#						params_dict, input_S)
+						params_dict)
 
 		LoopMiFGD.__init__(self)
 

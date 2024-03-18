@@ -531,8 +531,8 @@ class BasicWorkerRGD(WorkerParm, LoopRGD):
 	(where UU^* = rho = density matrix)
 	'''
 	def __init__(self,
-				 params_dict, input_S):
-#				 params_dict):
+#				 params_dict, input_S):
+				 params_dict):
 		
 		process_idx   = 0
 		num_processes = 1
@@ -541,8 +541,8 @@ class BasicWorkerRGD(WorkerParm, LoopRGD):
 		WorkerParm.__init__(self,
 						process_idx,
 						num_processes,
-						params_dict, input_S)
-#						params_dict)
+#						params_dict, input_S)
+						params_dict)
 
 		LoopRGD.__init__(self)
 

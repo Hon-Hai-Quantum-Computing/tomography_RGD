@@ -1,6 +1,8 @@
 # self defined ignore
 old/*.py
 quQST/old/*.py
+Load_workers.py
+*.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

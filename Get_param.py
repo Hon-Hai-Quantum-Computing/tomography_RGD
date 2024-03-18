@@ -106,7 +106,9 @@ def Do_projector(s_label, projector_store_path, Pj_method):
     #return projector_store_path
     return num_cpus, saveP_bulk, Partition_Pj
 
-def Initial_params(Dir, params_setup, target_density_matrix):
+def Initial_params(params_setup, target_density_matrix, input_S):
+#def Initial_params(params_setup, target_density_matrix):
+#def Initial_params(Dir, params_setup, target_density_matrix):
 #def Initial_params(Dir, params_qiskit, input_S):
 
     #print('\n ------------------   to get parameters    ------------------- ')
@@ -130,10 +132,12 @@ def Initial_params(Dir, params_setup, target_density_matrix):
     ##
     Noise = params_setup['Noise']
 
-    if type(Noise) == int:          ## the usual shot measurement
+    #if type(Noise) == int:          ## the usual shot measurement
+    if Noise == -1:                 ## the usual shot measurement
 
         params_dict = {'measurement_store_path': measurement_store_path,
                    'projector_store_path': projector_store_path,
+                   'DirRho': params_setup['DirRho'],
                    'StateName': params_setup['StateName'],
                    'version': params_setup['version'],
                    'Pj_method': params_setup['Pj_method'],
@@ -146,32 +150,45 @@ def Initial_params(Dir, params_setup, target_density_matrix):
                    'Nr': params_setup['Nr'],
                    #'backend': params_setup['backend'],
                    'num_shots': params_setup['num_shots'],
+                   'Noise': 'shot',        # must change corresponding methods_GetParam.py
                    'convergence_check_period': 1,
                    #'target_state': input_S.get_state_vector(),
                    #'target_DM': input_S.get_state_matrix()
                    'target_DM': target_density_matrix}
-        
-    elif type(Noise) == list:      ##  add in the noise model
 
+    #elif type(Noise) == list:      ##  add in the no``ise model
+    elif Noise == 0:               ##  Exact coef:  no noise
         params_dict = {'measurement_store_path': measurement_store_path,
                    'projector_store_path': projector_store_path,
+                   'DirRho': params_setup['DirRho'],
                    'StateName': params_setup['StateName'],
                    'version': params_setup['version'],
                    'Pj_method': params_setup['Pj_method'],
                    'mea_method': params_setup['mea_method'],
                    'measure_method': params_setup['measure_method'],
                    #'num_iterations': 1000,
-                   'num_iterations': 250,
+                   #'num_iterations': 50,
+                   #'num_iterations': 250,  # for rand-10-r3
+                   'num_iterations': 200,
                    'n': params_setup['n'],
                    'num_labels': params_setup['num_labels'],
                    'Nr': params_setup['Nr'],
                    #'backend': params_setup['backend'],
                    #'num_shots': params_setup['num_shots'],
-                   'Noise': Noise,
+                   #'Noise': Noise,
+                   'Noise': 'Exact',
                    'convergence_check_period': 1,
                    #'target_state': input_S.get_state_vector(),
                    #'target_DM': input_S.get_state_matrix()
                    'target_DM': target_density_matrix}
+
+    if input_S:
+        print(' ********************************************************* \n')
+        print('   there exists pure state   ')
+        params_dict['target_state'] = input_S.get_state_vector()            
+
+    if params_setup['StateName'] != 'KapRnd':
+        params_dict['Dir2m'] = params_setup['Dir2m']
 
     return params_dict
 

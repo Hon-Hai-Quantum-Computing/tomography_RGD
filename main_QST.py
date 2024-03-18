@@ -1,94 +1,577 @@
 
-import time
-import pickle                   # only for loading qiskit
+#import time
+#import pickle                   # only for loading qiskit
 
 import Get_param
-
 
 from importlib import reload
 #from Utility import State_Naming, Gen_Rho, Gen_randM, state_measure, \
 #                    state_measure_save, state_measure_wID, state_S_coef, split_list, mp_state_measure
 
 from Utility import State_Naming
-                    
+from Utility import Params_define
+#from Utility import Ver_Rho_Naming, Ver_Proj_Naming, Ver_meas_Naming                 
+
 from Input_Utility import Gen_Projectors 
 
-# ----------------------------------- #
-import sys
-sys.path.append('./quQST')
+from Input_measurements import Get_measurement_by_labels
 
-import projectors
+from Input_setting import basic_sys_setting
+
+from Utility import Decompose_Rho, Tune_Kappa
+from Utility import Params_Kappa_change
+from Utility import Params_RND_samples
+from Utility import Gen_randM
+from Utility import Gen_sNew_Power
+
+from RGD_optRun import Run_RGD
+from MiFGD_optRun import Run_MiFGD
+
+import pickle
+
+# ----------------------------------- #
+#import sys
+#sys.path.append('./quQST')
+
+#import projectors
 #import measurements
 #from methodsRGD import Amea
-reload(projectors)
+#reload(projectors)
 
 
-import numpy as np
-import os
+#import numpy as np
+#import os
 #import multiprocessing
 #from itertools import repeat
 #from functools import reduce
 
-import Input_measurements
-reload(Input_measurements)
+#import Input_measurements
+#reload(Input_measurements)
 
-from Input_measurements import Get_measurement_by_labels
-
-import Input_setting
-reload(Input_setting)
-
-from Input_setting import basic_sys_setting
+#import Input_setting
+#reload(Input_setting)
 
 
 
+def Print_Target_Err(Ttot, Wk_dict):
+    # ----------------------------- #
+    #   show some results           #
+    # ----------------------------- #
+    print(' --------------------- \n   Target_Err:\n')
+    #Target_Err = {}
+    #for wk, mt in zip(wk_list, Ttot):
+    #    print(' ({:.3},  {}), '.format(mt[0], wk.Target_Err_Xk[-1]))
+    for result in Ttot:
+        #method = result[0]
+        method, InitX, Option, dt = result
 
-if __name__ == "__main__":
 
-    # ----------------------------------------------- #
-    #   (A-0)  parameters for states (density matrix) #  
-    #                                                 #
-    #   this part can be manually specified           #
-    #   just convenience by calling function          #
-    #       Nk  =  number of qubits                   #
-    #       m   =  number of sampled Pauli matrices   #
-    #       mea =  number of shot measurements        #
-    # ----------------------------------------------- #
+        if method == 'RGD':         #  or  isinstance(wk, list)
+            OptMd = '{}{}'.format(method, InitX)    #  Optimization method = RGD0  or RGD1
+            #print('  Rmd  =  {}'.format(OptMd))
 
-    Choose = 2
-    Nk, m, mea = basic_sys_setting(Choose)
+            wk  = Wk_dict[OptMd]
+            wk = wk[1]              #  Wk_dict['RRD'] = [Rpm, worker]
 
-    # --------------------------------------------------------------------------------- #
-    #   (A-1)  choosing the input state                                                 #
-    #                                                                                   #
-    #          Nr = number of rank                                                      #
-    #                                                                                   #
-    #       Noise =  0           for pure states                                        #
-    #               [0, 0, 0.1]  for mixed states                                       #
-    #                  i.e. [Gaussian model, mean, variance] --> not implemented yet    #
-    #                       now only exact value is used (by qutip)                     #
-    #                                                                                   #
-    #       StVer    = version control for random mixed states                          #
-    #       StVer[0] = version of generated random density matrices of rank Nr          #
-    #       StVer[1] =  0    loading random density matrices (generated earlier)        #
-    #                           --> will check if the directory exists or not           #
-    #                   1    generate new random density matrices of rank Nr            # 
-    #                           if file already exists for specified version StVer[0]   #
-    #                           then the version StVer[0] will +1 automatically         #
-    # --------------------------------------------------------------------------------- #
+        else:                       #  MiFGD
+            if InitX == 0:
+                OptMd = method
+            elif InitX == 1:
+                OptMd = -method
+            else:
+                OptMd = '{}+{}'.format(method, InitX)
 
-    StateName = 'GHZ'        #  'GHZ' | 'Had' |  'rand'
+            OptMd = '{}+{}'.format(OptMd, Option)
 
-    if StateName == 'rand':
-        Nr    = 3
-        Noise = [0, 0, 0.1]  #  actually implementing exact result only
-                             #     --> can extend to Gaussian noise or other noise model
-        StVer = [1, 1]       #  [version R?, New or Generate]   for (random) State
+            #OptMd  = method
+            #wk     = Wk_dict[method]
+            wk     = Wk_dict[OptMd]
+
+        #print(' (method, InitX, Err) = ({:.7}, {}, {}), dt = {}'.format(OptMd, \
+        #                        InitX, wk.Target_Err_Xk[-1], dt))
+        print(' (method, InitX, Option, Err) = ({:.7}, {}, {}, {}), dt = {}'.format(OptMd, \
+                                InitX, Option, wk.Target_Err_Xk[-1], dt))
+        if Option == 1:
+            print(' ---------------------- ')  
+        elif Option == 2:
+            print(' ++++++++++++++++++++++ ')  
+        elif OptMd == 'RGD0':
+            print(' ********************** ')
+
+
+    print('\n')
+
+def FileRec_Tproj_Tmea(File_rec, T_rec, params_setup):
+
+    Nk        = params_setup['n']
+    m         = params_setup['num_labels']
+    mea       = params_setup['num_shots']
+    StVer     = params_setup['StVer']
+    version   = params_setup['version']
+
+    Pj_method  = params_setup['Pj_method']
+    mea_method = params_setup['mea_method']
+    measure_method = params_setup['measure_method']
+
+    #StateName = params_setup['StateName']
+    Data_In  = params_setup['Data_In']
+
+    DirRho   = params_setup['DirRho']
+    Dir_proj = params_setup['projector_store_path']
+    Dir_meas = params_setup['measurement_store_path']
+
+    print('File_rec = {}'.format(File_rec))
+    f = open(File_rec, 'a')
+
+    f.write('\n ------------------------------------------------- \n')
+    f.write(' File_rec = {}\n'.format(File_rec))
+    f.write('     Nk       = {}\n'.format(Nk))
+    f.write('     m        = {}\n'.format(m))
+    f.write('     mea      = {}\n'.format(mea))
+    if len(Data_In) == 0:
+        f.write('     StVer    = {}\n'.format(StVer))
+        f.write('     version  = {}\n'.format(version))
+        #f.write('     meas_path    = {}\n'.format(meas_path))
+        f.write('     meas_path    = {}\n'.format(Dir_meas))
     else:
-        Nr    = 1
-        Noise = 0
-        StVer = 0            #  by default = 0
+        f.write('     ****  read from Data_In -->  \n  ')
+        f.write('     ****     DirRho   = {}\n  '.format(DirRho))
+        f.write('     ****     Dir_proj = {}\n  '.format(Dir_proj))
+        f.write('     ****     Dir_meas = {}\n\n'.format(Dir_meas))
+
+    f.write('     Pj_method    = {}\n'.format(Pj_method))
+    f.write('     mea_method   = {}\n'.format(mea_method))
+    f.write('     measure_method   = {}\n'.format(measure_method))
+    f.write(' Time (projection)  = {}  [num_cpus] = {}\n'.format(T_rec['proj'], Ncpu_Pj))
+
+    Ncpu_meas = T_rec['Ncpu_meas']
+    f.write(' Time (measurement) = {}  [num_cpus] = {}\n\n'.format(T_rec['measurement'], Ncpu_meas))
+
+    f.close()
 
 
+def FileRec_Tmethod(File_rec, Ttot, Wk_dict):
+    # ------------------------------------  #
+    #   record some results in File_rec     #
+    # ------------------------------------  #
+ 
+    print('  File_rec = {}'.format(File_rec))
+
+    f = open(File_rec, 'a')        #  File_rec = '{}_Rec_info.txt'.format(Dir)   defined earlier
+    for ii in range(len(Ttot)):
+        md, InitX, Option, dt = Ttot[ii]
+        print(' md = {},  InitX = {}, Option = {}, dt = {}'.format(md, InitX, Option, dt))
+
+        if isinstance(md, str):                  #   RGD  method
+            method = '{}{}'.format(md, InitX)    # = RGD0  or RGD1
+
+            Rpm, wk = Wk_dict[method]
+            f.write('   {}, Rpm = [InitX, Md_tr, Md_alp, Md_sig, Ch_svd] = {}  -->  time = {}, '.format(method, Rpm, dt))
+
+        else:                           # MiFGD method
+            if InitX == 0:
+                method = md
+            elif InitX == 1:
+                method = -md   
+            else:
+                method = '{}+{}'.format(md, InitX) 
+               
+            method = '{}+{}'.format(method, Option)    
+
+            #wk = Wk_dict[md]
+            wk = Wk_dict[method]
+
+            eta   = wk.eta
+            #etaTh = wk.etaTh            # only for Option = 1
+            #f.write('   mu  =  {:.3}                                                          -->  time = {}, '.format(md, dt))
+            #f.write('   mu  =  {:.3},  InitX = {} |=> method = {}                            -->  time = {}, '.format(md, InitX, method, dt))
+            #f.write('   mu  =  {:.3},  InitX = {}, eta = {} |=> method = {}                   -->  time = {}, '.format(md, InitX, eta, method, dt))
+            #f.write('   mu  =  {:.3},  InitX = {}, eta = {}, etaTh = {} |=> method = {}       -->  time = {}, '.format(md, InitX, eta, etaTh, method, dt))
+            f.write('   mu  =  {:.3},  InitX = {}, eta = {:.3}, Op = {} |=> method = {}          -->  time = {}, '.format(md, \
+                                                                InitX, eta, Option, method, dt))
+
+        Err_rel_Xk    = wk.Err_relative_Xk[-1]
+        Err_Target_Xk = wk.Target_Err_Xk[-1]
+        Nite          = wk.iteration
+        converged     = wk.converged
+
+        f.write(' {} iter converge? {}: relative Err = {}, Target Err = {}\n'.format(Nite, converged, Err_rel_Xk, Err_Target_Xk))
+
+    f.close()
+
+def Tomography_over_measurement(params_setup, target_DM, input_S, \
+                                pm_RGD, pm_MiFGD, T_rec):
+
+    # -------------------------------------------------------------- #
+    #  get params_dict as the input for each optimization method     #
+    #           i.e.  used in both MiFGD &  RGD                      #
+    # -------------------------------------------------------------- #
+
+    #params_dict = Get_param.Initial_params(Dir, params_setup, target_density_matrix)
+    params_dict = Get_param.Initial_params(params_setup, target_DM, input_S)
+
+    # --------------------------------------------------------------- #
+    #   extract parameters for (each optimization method)/recording   #
+    # --------------------------------------------------------------- #
+
+    Call_MiFGD, InitX_MiFGD, muList, Num_mu = pm_MiFGD
+    Call_RGD, Rpm   = pm_RGD
+
+    InitX_RGD, Md_tr, Md_alp, Md_sig, Ch_svd = Rpm
+
+    # ---------------------------------------------------------------- #
+    #   define some variables for                                      #
+    #       recording running some information about the simulation    #
+    #                                                                  #
+    #   T_rec: record the projector & measurement & running time       #
+    #                                                                  #
+    #   Ttot : record  running time for calling                        # 
+    #             MiFGD_optRun.py             (MiFGD)                  #
+    #             RGD_optRun.py       (RGD)                            #
+    #                                                                  #
+    #   Wk_dict : record the parameters & optization result            #
+    # ---------------------------------------------------------------- #
+
+    Ttot = []
+    Wk_dict = {}                #  record the worker list
+
+    # ----------------------------------------------------------- #
+    #   start executing the optimization method                   #
+    #               MiFGD  &/or  RGD   method                     #
+    #           &   record method running time = tw2b - tw2a      #
+    # ----------------------------------------------------------- #
+
+
+    if Call_RGD == 1:
+
+        for InitX_RGD in [1, 0]:
+
+            Rpm = InitX_RGD, Md_tr, Md_alp, Md_sig, Ch_svd
+
+            #exec(open('RGD_optRun.py').read())
+            Frec_RGD, wc, RunTime = Run_RGD(params_dict, Rpm)
+
+            #Ttot.append(('RGD', RunTime))
+            #T_rec['RGD']  = RunTime
+            #Wk_dict['RGD'] = [Rpm, wc]              #  Rpm = [InitX_RGD, Md_tr, Md_alp, Md_sig]
+
+            method = 'RGD{}'.format(InitX_RGD)
+
+            #Ttot.append(('RGD', InitX_RGD, RunTime))
+            Ttot.append(('RGD', InitX_RGD, 0, RunTime))
+
+            T_rec[method]  = RunTime
+            Wk_dict[method] = [Rpm, wc]              #  Rpm = [InitX_RGD, Md_tr, Md_alp, Md_sig]
+
+            print('   RGD method = {}'.format(method))
+            print("The total time for ALL is {}".format(Ttot))
+
+
+    if Call_MiFGD == 1:
+
+        for ii in range(0, Num_mu):
+
+            mu  = muList[ii]
+            eta = 0.01
+
+            print('\n ----------------  {}-th mu = {}   start ------------------ \n'.format(ii, mu))
+
+            #for InitX_MiFGD in [1, 0]:
+            for InitX_MiFGD in [0]:
+            #for InitX_MiFGD in [1]:
+                #for Option in [0, 1, 2]: 
+                #for Option in [2, 1, 0]: 
+                #for Option in [1, 2]: 
+                for Option in [2]: 
+                #for Option in [0]: 
+
+                    Rpm_MiFGD = [InitX_MiFGD, mu, eta, Option]
+
+                    Frec_MiFGD, wc, RunTime = Run_MiFGD(params_dict, Rpm_MiFGD)
+
+                    #Ttot.append((mu, InitX_MiFGD, RunTime))
+                    Ttot.append((mu, InitX_MiFGD, Option, RunTime))                    
+
+                    if InitX_MiFGD == 0:
+                        method = mu
+                    elif InitX_MiFGD == 1:
+                        method = -mu
+                    else:
+                        method = '{}+{}'.format(mu, InitX_MiFGD)
+
+                    method = '{}+{}'.format(method, Option)
+
+                    #T_rec[mu] = RunTime
+                    #Wk_dict[mu] = wc
+
+                    T_rec[method] = RunTime
+                    Wk_dict[method] = wc
+
+
+            #print(' ----------------  {}-th mu = {}   done  ----------------\n\n'.format(ii, mu))
+
+            print("The total time for each mu is {}".format(Ttot))
+
+
+    # ----------------------------------------- #
+    #   (D-2)'     file record information      #
+    # ----------------------------------------- #
+    StateName = params_setup['StateName']
+    DirRho    = params_setup['DirRho']
+    Dir2m     = params_setup['Dir2m']
+
+    if StateName == 'KapRnd':
+        File_rec = '{}/Rec_info.txt'.format(DirRho)
+    else:
+        File_rec = '{}_Rec_info.txt'.format(Dir2m)
+
+    # ----------------------------- #
+    #   output & record results     #
+    # ----------------------------- #  
+
+    FileRec_Tproj_Tmea(File_rec, T_rec, params_setup)
+
+    FileRec_Tmethod(File_rec, Ttot, Wk_dict)
+
+
+    Print_Target_Err(Ttot, Wk_dict)
+
+    print('    DirRho    = {}'.format(params_setup['DirRho']))
+    print('  measurement_store_path = ')
+    print('            {}'.format(params_setup['measurement_store_path']))
+
+    return Ttot, Wk_dict
+
+def Default_OptMethod_params():
+
+    # ----------------------------------------------------------------- #
+    #   (C) to call each optimization method to calculate               #
+    #       if chosen to run,                                           #
+    #          each optimization method will be executed sequentially   #
+    #               with recording the result & run time                #
+    #       MiFGD & RGD can be called separately                        #
+    # ----------------------------------------------------------------- #
+
+    Call_MiFGD = 1      #  = 1: call the MiFGD optimization to calculate
+    Call_RGD = 0        #  = 1: call the RGD   optimization to calculate
+
+    # -------------------------------------------------------------------------------- #
+    #   (C-1) parameters for calling MiFGD optimization algorithm                      #
+    #                                                                                  #
+    #     InitX_MiFGD = 0   generate random matrix according to MiFGD paper & code     #
+    #                                                                                  #
+    #     [Usage]   worker = methodsMiFGD.BasicWorker(params_dict, input_S)            #
+    #               worker.compute(InitX_MiFGD)                                        #
+    #     demonstrated by executing  MiFGD_optRun.py                                   #
+    # -------------------------------------------------------------------------------- #
+
+    #InitX_MiFGD = 0;     #Ld_MiFGD = None
+    InitX_MiFGD = 1
+
+    #muList = [3/4, 0.5, 1/3, 0.2, 0.25, 0.125]
+    #Num_mu = 1     #  number of mu for running MiFGD
+                    #  (eg) = 2 --> run cases of muList = [3/4, 0.5]
+    #muList = [3/4, 0.25, 4.5e-5]
+    #Num_mu = 3      #  number of mu for running MiFGD
+
+    #muList = [0.75]
+    muList = [4.5e-5]
+    Num_mu = 1      #  number of mu for running MiFGD
+
+    #muList = [3/4, 4.5e-5]
+    #muList = [4.5e-5, 3/4]
+    #Num_mu = 2      #  number of mu for running MiFGD
+
+    #muList = [0.25]
+    #Num_mu = 1      #  number of mu for running MiFGD
+
+    pm_MiFGD = [Call_MiFGD, InitX_MiFGD, muList, Num_mu]
+
+    # ---------------------------------------------------------------------------------------------- #
+    #   (C-2) parameters for calling RGD optimization algorithm                                      #
+    #                                                                                                #
+    #       InitX_RGD = 0   generate random X0  (same implementation as MiFGD)                       #
+    #                   1   generate X0 according to paper = Hr(A^\dagger(y))                        #
+    #                                                                                                #
+    #       some other control parameters are implemented for testing performance                    #
+    #       Now the default & confirmed setting is                                                   #
+    #           [Md_tr, Md_alp, Md_sig, Ch_svd] = [0, 0, 0, -1]                                      #
+    #       where Ch_svd: the choice of SVD for getting the initial X0                               #
+    #                   =  0  the full SVD, i.e. LA.svd                                              #
+    #                      1  scipy.sparse.linalg.svds                                               #
+    #                      2  calling power_Largest_EigV = power method to have largest sig vec only #
+    #                     -1  using the randomized SVD mentioned in the supplementary                #
+    #         Note the SVD for each iteration still adopts the normal SVD                            # 
+    #                                                                                                #             
+    #      [Usage]  after 
+    #                    worker = methodsRGD.BasicWorkerRGD(params_dict, input_S)                    #
+    #                    worker.computeRGD(InitX_RGD, Ch_svd, Md_tr, Md_alp, Md_sig)                 #
+    #               demonstrated by executing  RGD_optRun.py                                         #
+    # ---------------------------------------------------------------------------------------------- #
+
+    Md_tr =  0                  #   Method if including trace = 1
+    Md_alp = 0                  #   method for scaling alpha
+    Md_sig = 0                  #   method for scaling singular value
+    Ch_svd = -1                 #   choice for initial SVD  (0: LA.svd, 1: svds;  2: power_Largest_EigV, -1: rSVD)
+
+    InitX_RGD = 1;              #Ld_RGD = None       #   method of choosing initial X0
+
+    Rpm    = [InitX_RGD, Md_tr, Md_alp, Md_sig, Ch_svd]
+    pm_RGD = [Call_RGD, Rpm]
+
+    return pm_MiFGD, pm_RGD
+
+def Default_Setting_Run_Tomography(params_setup, target_density_matrix,\
+                                input_S, T_rec):
+
+    pm_MiFGD, pm_RGD = Default_OptMethod_params()
+
+    T_Rho  = {}      #  record Ttot for each Rho
+    Wk_Rho = {}      #  record Wk_dict for each Rho
+
+    StateName = params_setup['StateName']
+    DirRho    = params_setup['DirRho']
+
+    # --------------------------------------------- #
+    #   start doing the tomography optimization     #
+    #       using   RGD  &  MiFGD                   #
+    # --------------------------------------------- #
+
+    Ttot, Wk_dict = Tomography_over_measurement(params_setup, target_density_matrix, \
+                             input_S, pm_RGD, pm_MiFGD, T_rec)
+
+    T_Rho[DirRho]  = Ttot
+    Wk_Rho[DirRho] = Wk_dict
+
+    if StateName == 'KapRnd':
+        #List_Kappa = [10, 20, 30, 40]
+        #List_alpha = [0.25, 0.5, 1, 2, 3]
+        #List_Kappa = [20, 40, 60, 80]
+        #List_alpha = [0.5, 2, 4]
+        #List_Kappa = [80]
+        
+        #List_alpha = [4, 8, 10, 15, 20]
+        #List_alpha = [8, 10, 15, 20]
+        List_alpha = [4, 6, 8, 9, 10, 15, 20]   # paper use
+
+        T_Rho2, Wk_Rho2 = Tune_Kappa_Tomography(params_setup, target_density_matrix, \
+                    input_S, T_rec, List_alpha)
+
+        T_Rho.update(T_Rho2)
+        Wk_Rho.update(Wk_Rho2)
+
+    return T_Rho, Wk_Rho
+
+def Tune_Kappa_Tomography(params_setup, target_density_matrix, input_S, T_rec, \
+                List_alpha):
+    """ (eg)        List_Kappa = [10, 20, 30]
+                    List_alpha = [0.25, 0.5, 1, 2, 3]
+    """
+    pm_MiFGD, pm_RGD = Default_OptMethod_params()
+
+    T_Rho  = {}      #  record Ttot for each Rho
+    Wk_Rho = {}      #  record Wk_dict for each Rho
+
+    Nr        = params_setup['Nr']
+    StateName = params_setup['StateName']
+    StVer     = params_setup['StVer']
+    
+    if StateName == 'KapRnd':
+        if StVer[1] == 1:            #  need to create New Rho
+            u, s, vh = Decompose_Rho(target_density_matrix, Nr, params_setup)
+            del target_density_matrix
+
+        for alpha in List_alpha:
+
+            if StVer[1] == 1:       #  create New Rho
+                NewRho, s_new, Kappa = Tune_Kappa(u, s, vh, Nr, alpha)
+            elif StVer[1] == 0:     #  Rho already existed
+                NewRho = []
+                s_new, Kappa = Gen_sNew_Power(alpha, Nr)
+
+            params_setup, Dt_meas = Params_Kappa_change(params_setup, Kappa, alpha, NewRho, s_new)
+            T_rec['measurement'] = Dt_meas
+
+            if StVer[1] == 0:       #  to read existing Rho
+                DirRho = params_setup['DirRho']
+
+                with open('{}/RhoKappa.dat'.format(DirRho), 'rb') as f:
+                    Kappa2, NewRho = pickle.load(f)
+
+            Ttot, Wk_dict = Tomography_over_measurement(params_setup, NewRho, \
+                                        input_S, pm_RGD, pm_MiFGD, T_rec)
+
+            DirRho               = params_setup['DirRho']
+
+            Wk_Rho[DirRho]       = Wk_dict
+            T_Rho[DirRho]        = Ttot
+
+    return T_Rho, Wk_Rho
+
+def Add_More_Kappa(params_setup, T_rec, List_alpha):
+    """ (eg)        List_Kappa = [40, 50]
+                    List_alpha = [0.3, 1, 2]
+    """
+
+    StateName = params_setup['StateName']
+    Nk        = params_setup['n']
+    Nr        = params_setup['Nr']
+
+    DirRho    = params_setup['DirRho']
+    StVer     = params_setup['StVer']
+    
+    StVer[1] = 0
+    params_setup['StVer'] = StVer
+
+    T_rec['Ncpu_meas']    =  1   # same as  Get_measurement_by_labels
+
+    target_density_matrix, rho = Gen_randM(Nk, StateName, Nr, StVer, DirRho)
+    input_S = None
+
+    T_Rho, Wk_Rho = Tune_Kappa_Tomography(params_setup, target_density_matrix, \
+                    input_S, T_rec, List_alpha)
+
+    return T_Rho, Wk_Rho
+
+
+
+def Sample_Rnd_Tomography(params_setup, Samples, Num_Rho, T_rec):
+    """  (eg)      Samples = 'sample4'
+                  Num_Rho  = 3
+
+    """
+
+    New_Pj_shot = params_setup['New_Pj_shot']
+    StateName   = params_setup['StateName']
+
+    #if New_Pj_shot[1] != 1:
+    #    print(' No new measurement needed')
+    #    return params_setup
+    
+    if StateName != 'rand':
+        print('StateName = {}'.format(StateName))
+        print('  -->   NOT considered here \n\n')
+        return params_setup
+ 
+    for numID in range(1, Num_Rho+1):
+    #for numID in [4, 5]:
+
+        params_setup = Params_RND_samples(params_setup, Samples, numID)
+
+        target_density_matrix, input_S, T_rec, Ncpu_meas = \
+            Get_measurement_by_labels(params_setup, label_list, T_rec)
+
+        T_Rho, Wk_Rho = Default_Setting_Run_Tomography(params_setup, \
+                    target_density_matrix, input_S, T_rec)
+
+    print(' ---------- Run samples of RND completed --------- \n\n')
+    return params_setup
+
+
+def Default_MeasureState_parm(Obtain_Pj):
+    """  (eg)       Obtain_Pj = 2
+
+    """
     # ----------------------------------------------------------------------------- #
     #   (B) loading or generating sampled Pauli matrices & measurements             #
     #          projectors = labels = Pauli matrices (obs = observables)             #
@@ -120,8 +603,8 @@ if __name__ == "__main__":
     #   (B-2) version control:  loading or creating data                             #
     #                              of  sampled Pauli matrices & measurement          #
     #                                                                                #
-    #       Data_In =  []               defult                                       #
-    #                  [Dir, PjFile]    if specified (only for testing)              #
+    #       Data_In =  []                 defult                                     #
+    #                  [DirRho, Dir_proj] if specified (only for testing)            #
     #                                                                                #
     #    version[0] =  version of sampled Projectors                                 #
     #           [1] =  version of measurement                                        # 
@@ -144,18 +627,67 @@ if __name__ == "__main__":
     #                       i.e. get measurement_list = the coef of each Pauli obs   #
     #    (default usage)                                                             #
     #       New_Pj_shot = [1, 1]  = creating new Projector & measurement             #
+    #       -->  Caveat:   Now only this works for call cases                        #
+    #                   other choice of New_Pj_shot may not work                     #    
+    #                       (eg) New_Pj_shot = [1, 2] for StateName = 'KapRnd'       #
     # ------------------------------------------------------------------------------ #
-    Obtain_Pj = 0
-    if Obtain_Pj == 1:
+    
+    if Obtain_Pj == 1:      #  direct read in data for tomography
 
-        Dir    = 'data/rand-6-r6/R1/Lk_rand-6-r3_R1_m1638_s1'
-        PjFile = 'rand-6-r3_m1638_s1_Proj'
+        #StateName = 'GHZ';  Nk = 3; Nr = 1; m = 10; Noise = -1
+        #DirRho   = '../Tomography/calc/GHZ-3/GHZ-3_m10_s7'
+        #Dir_proj = '../Tomography/calc/GHZ-3/GHZ-3_m10_s7/GHZ-3_m10_s7_Proj'
 
-        Data_In = [Dir, PjFile]
+        #StateName = 'rand';  Nk = 3; Nr = 3; m = 10; Noise = 0
+        #DirRho    = '../Tomography/calc/rand-3-r3/R14/rand-3-r3_m10_s1'
+        #Dir_proj  = '../Tomography/calc/rand-3-r3/R14/rand-3-r3_m10_s1/rand-3-r3_m10_s1_Proj'
+        #Dir_proj  = '../Tomography/calc/rand-3-r3/rand-3-r3_m10_s1_Proj'
+        #Dir_proj  = '../Tomography/calc/rand-3-r3/Pj_s2'
 
+        StateName = 'KapRnd';  Nk = 3; Nr = 3; m = 10; Noise = 0
+        #DirRho    = '../Tomography/calc/KapRnd-3-r3/R28/Kap0'
+        #Dir_proj  = '../Tomography/calc/KapRnd-3-r3/Proj_m10_s27/'
+        #DirRho   = '../Tomography/calc/KapRnd-3-r3/R53/Kap0'
+        #Dir_proj = '../Tomography/calc/KapRnd-3-r3/Proj_m10_s53/'
+        #DirRho   = '../Tomography/data/KapRnd-8-r3/R1/Kap0'
+        #Dir_proj = '../Tomography/data/KapRnd-8-r3/Proj_m13107_s1'
+
+        #DirRho   = '../Tomography/data/KapRnd-8-r3/R2/Kap0'
+        #Dir_proj = '../Tomography/data/KapRnd-8-r3/Proj_m19660_s1'
+
+        DirRho   = '../Tomography/data/KapRnd-3-r3/R6/Kap0'
+        Dir_proj = '../Tomography/data/KapRnd-3-r3/Proj_m10_s6'
+
+        Data_In     = [DirRho, Dir_proj]
         New_Pj_shot = [0, 1]  #  [New Proj?, New shot?]  | [0,0] loading | 
 
-    else:
+    elif Obtain_Pj == 2:        #  only load Dir_proj
+
+        #Dir_proj  = '../Tomography/calc/rand-3-r3/Pj_s1'
+        #Dir_proj  = '../Tomography/calc/rand-8-r3/rand-8-r3_m13107_s1_Proj'
+        #Dir_proj  = '../Tomography/calc/rand-10-r3/rand-10-r3_m209715_s1_Proj'
+        #Dir_proj  = '../Tomography/calc/rand-12-r3/rand-12-r3_m838860_s1_Proj'
+
+        #Dir_proj  = '../Tomography/data/rand-6-r3/rand-6-r3_m1228_s1_Proj'
+        Dir_proj  = '../Tomography/data/rand-8-r3/rand-8-r3_m13107_s1_Proj'
+        #Dir_proj  = '../Tomography/data/rand-8-r3/rand-8-r3_m19660_s1_Proj'
+        #Dir_proj  = '../Tomography/data/rand-10-r3/rand-10-r3_m209715_s1_Proj'
+        #Dir_proj  = '../Tomography/data/rand-12-r3/rand-12-r3_m838860_s1_Proj'
+
+        Data_In     = ['', Dir_proj]
+        #New_Pj_shot = [0, 1]  #  [New Proj?, New shot?]  | [0,0] loading | 
+        New_Pj_shot = [0, 0]  #  [New Proj?, New shot?]  | [0,0] loading | 
+
+    elif Obtain_Pj == -1:     #  the label_list from single|two sites, instead of sampling
+        Data_In = []
+
+        New_Pj_shot = [1, 1]  #  still need to produce new label_list  
+
+    elif Obtain_Pj == -2:
+        Data_In = []
+        New_Pj_shot = [0, 0]  #  [New Proj?, New shot?]  | [0,0] loading | 
+
+    elif Obtain_Pj == 0:
         Data_In = []
 
         New_Pj_shot = [1, 1]  #  [New Proj?, New shot?]  | [0,0] loading | 
@@ -163,97 +695,6 @@ if __name__ == "__main__":
         #New_Pj_shot = [2, 1]  #  [New Proj?, New shot?]  | [0,0] loading | 
         #New_Pj_shot = [2, 0]  #  [New Proj?, New shot?]  | [0,0] loading | 
         #New_Pj_shot = [0, 2]  #  [New Proj?, New shot?]  | [0,0] loading | 
-        #New_Pj_shot = [0, 0]  #  [New Proj?, New shot?]  | [0,0] loading | 
-
-    version = [1, 1, Noise]
-
-
-    # ----------------------------------------------------------------- #
-    #   (C) to call each optimization method to calculate               #
-    #       if chosen to run,                                           #
-    #          each optimization method will be executed sequentially   #
-    #               with recording the result & run time                #
-    #       MiFGD & RGD can be called separately                        #
-    # ----------------------------------------------------------------- #
-
-    Call_MiFGD = 1      #  = 1: call the MiFGD optimization to calculate
-    Call_RGD = 1        #  = 1: call the RGD   optimization to calculate
-    
-    To_save_X0 = 0      #  to save the initial X0 or not? 
-
-    # -------------------------------------------------------------------------------- #
-    #   (C-1) parameters for calling MiFGD optimization algorithm                      #
-    #                                                                                  #
-    #     InitX_MiFGD = 0   generate random matrix according to MiFGD paper & code     #
-    #                                                                                  #
-    #     [Usage]   worker = methodsMiFGD.BasicWorker(params_dict, input_S)            #
-    #               worker.compute(InitX_MiFGD)                                        #
-    #     demonstrated by executing  MiFGD_optRun.py                                   #
-    # -------------------------------------------------------------------------------- #
-
-    InitX_MiFGD = 0;     #Ld_MiFGD = None
-
-    muList = [3/4, 0.5, 1/3, 0.2, 0.25, 0.125]
-    Num_mu = 1      #  number of mu for running MiFGD
-                    #  (eg) = 2 --> run cases of muList = [3/4, 0.5]
-
-    # ---------------------------------------------------------------------------------------------- #
-    #   (C-2) parameters for calling RGD optimization algorithm                                      #
-    #                                                                                                #
-    #       InitX_RGD = 0   generate random X0  (same implementation as MiFGD)                       #
-    #                   1   generate X0 according to paper = Hr(A^\dagger(y))                        #
-    #                                                                                                #
-    #       some other control parameters are implemented for testing performance                    #
-    #       Now the default & confirmed setting is                                                   #
-    #           [Md_tr, Md_alp, Md_sig, Ch_svd] = [0, 0, 0, -1]                                      #
-    #       where Ch_svd: the choice of SVD for getting the initial X0                               #
-    #                   =  0  the full SVD, i.e. LA.svd                                              #
-    #                      1  scipy.sparse.linalg.svds                                               #
-    #                      2  calling power_Largest_EigV = power method to have largest sig vec only #
-    #                     -1  using the randomized SVD mentioned in the supplementary                #
-    #         Note the SVD for each iteration still adopts the normal SVD                            # 
-    #                                                                                                #             
-    #      [Usage]  after 
-    #                    worker = methodsRGD.BasicWorkerRGD(params_dict, input_S)                    #
-    #                    worker.computeRGD(InitX_RGD, Ch_svd, Md_tr, Md_alp, Md_sig)                 #
-    #               demonstrated by executing  RGD_optRun.py                                         #
-    # ---------------------------------------------------------------------------------------------- #
-
-    Md_tr =  0                  #   Method if including trace = 1
-    Md_alp = 0                  #   method for scaling alpha
-    Md_sig = 0                  #   method for scaling singular value
-    Ch_svd = -1                 #   choice for initial SVD  (0: LA.svd, 1: svds;  2: power_Largest_EigV, -1: rSVD)
-
-    InitX_RGD = 1;       #Ld_RGD = None                #   method of choosing initial X0
-
-    Rpm = [InitX_RGD, Md_tr, Md_alp, Md_sig, Ch_svd]
-
-
-    # ------------------------------------------------------------- #
-    #   the above (A) (B) (C) defines ALL the parameters needed     #
-    #                                                               #
-    #   the below (D) start running the program                     # 
-    # ------------------------------------------------------------- #
-
-    # ---------------------------------------------------------------- #
-    #   define some variables for                                      #
-    #       recording running some information about the simulation    #
-    #                                                                  #
-    #   T_rec: record the projector & measurement & running time       #
-    #                                                                  #
-    #   Ttot : record  running time for calling                        # 
-    #             MiFGD_Fun_Use_v5.py             (MiFGD)              #
-    #             RGD_EnRui_SL_read_y_v5.py       (RGD)                #
-    #                                                                  #
-    #                                                                  #
-    #   Wk_dict : record the parameters & optization result            #
-    # ---------------------------------------------------------------- #
-    T_rec = {}          
-    T_rec['Nk'] = Nk
-    T_rec['m']  = m
-
-    Ttot = []
-    Wk_dict = {}                #  record the worker list
 
     # ------------------------------------- #
     #    define controlling parameters      #     
@@ -262,20 +703,91 @@ if __name__ == "__main__":
                       'Pj_method':  Pj_method,
                       'mea_method': mea_method
                       }
+    return Pj_method, mea_method, measure_method, New_Pj_shot, Data_In
+
+
+if __name__ == "__main__":
+
+    # ----------------------------------------------- #
+    #   (A-0)  parameters for states (density matrix) #  
+    #                                                 #
+    #   this part can be manually specified           #
+    #   just convenience by calling function          #
+    #       Nk  =  number of qubits                   #
+    #       m   =  number of sampled Pauli matrices   #
+    #       mea =  number of shot measurements        #
+    # ----------------------------------------------- #
+    # --------------------------------------------------------------------------------- #
+    #   (A-1)  choosing the input state                                                 #
+    #                                                                                   #
+    #          Nr = number of rank                                                      #
+    #                                                                                   #
+    #       Noise =  -1          shot measurements (for pure states)                    #
+    #                 0          get exact coef   (perfect measurement)                 #
+    #                       now only exact value is used (by qutip)                     #
+    #               [may implment some noise model in the future]                       #
+    #                  i.e. [Gaussian model, mean, variance] --> not implemented yet    #
+    #                                                                                   #
+    #       StVer    = version control for random mixed states                          #
+    #       StVer[0] = version of generated random density matrices of rank Nr          #
+    #       StVer[1] =  0    loading random density matrices (generated earlier)        #
+    #                           --> will check if the directory exists or not           #
+    #                   1    generate new random density matrices of rank Nr            # 
+    #                           if file already exists for specified version StVer[0]   #
+    #                           then the version StVer[0] will +1 automatically         #
+    #  i.e.  StVer  =  [version R?, New or Generate]   for (random) State               #
+    # --------------------------------------------------------------------------------- #
+
+    Choose = 7
+    Nk, m, mea = basic_sys_setting(Choose)
 
     # ---------------------------------------------------------- #
+    #   StateName choce = 'GHZ' | 'Had' |  'rand' |  'KapRnd'    #
+    #                                                            #
+    #   Default_MeasureState_parm() --> default params needed    #
+    #             for  projectors  &  measurement                # 
+    # ---------------------------------------------------------- #
+
+    #StateName = 'KapRnd'; Nr = 3;  Noise = 0;    StVer = [1, 1]
+    #StateName = 'KapRnd';  Nr = 3;  Noise = 0;   StVer = [1, 0]    # load existing Rho
+
+    #StateName = 'rand';   Nr = 3;  Noise = 0;    StVer = [1, 1]   # create new Rho
+    #StateName = 'rand';   Nr = 3;  Noise = 0;    StVer = [1, 0]   # load existing Rho
+
+    StateName = 'Had';    Nr = 1;  Noise = -1;   StVer = 0      
+    #StateName = 'quGH';    Nr = 1;  Noise = 0;   StVer = 0      
+    #StateName = 'quWst';    Nr = 1;  Noise = 0;   StVer = 0      
+
+    #Obtain_Pj = 0      #  0: whole new; 1: read Dir_In;  2: read Dir_Proj
+    Obtain_Pj = -2      #  0: whole new; 1: read Dir_In;  2: read Dir_Proj
+    #Obtain_Pj = 2      #  0: whole new; 1: read Dir_In;  2: read Dir_Proj
+
+    Pj_method, mea_method, measure_method, New_Pj_shot, Data_In = \
+                Default_MeasureState_parm(Obtain_Pj)
+
+    version = [1, 1, Noise]   # [Proj version, measurement version, Noise]
+
+
+    # ---------------------------------------------------------- #
+    #   (D) start running the optimization program               #
+    #                   for tomography                           # 
     #   (D-0) generate the Naming of the directory to store      #
     #       according to the state & version defined in (A) (B)  # 
     # ---------------------------------------------------------- #
 
-    Dir, Name, params_setup, version, proj_path, meas_path, Dir0, StVer = \
-            State_Naming(Nk, StateName, m, mea, Nr, version, New_Pj_shot, StVer, \
-                        Pj_method, mea_method, measure_method, Data_In)
+    params_setup = Params_define(Nk, StateName, m, mea, Nr, \
+                Pj_method, mea_method, measure_method, Obtain_Pj) 
+
+    params_setup = State_Naming(StVer, version, \
+                        params_setup, New_Pj_shot, Data_In)
+    #del Nk, m, mea, Nr, Pj_method, mea_method, measure_method
+    del StVer, version, New_Pj_shot, Data_In
 
     # ------------------------------------------------- #
     #   (D-1) generate the projectors = Pauli matrices  #
     # ------------------------------------------------- #
-    label_list, T_rec, Ncpu_Pj, saveP_bulk  = Gen_Projectors(params_setup, params_control, T_rec)   #  creating projectors
+
+    label_list, T_rec, Ncpu_Pj, saveP_bulk  = Gen_Projectors(params_setup)   #  creating projectors
 
     # ------------------------------------------------------------------------------------------ #
     #   (D-2)  creating the input density matrix                                                 #
@@ -286,147 +798,40 @@ if __name__ == "__main__":
     #        = rho      (None for pure state | qu.rand_dm_ginibre from qutip for random states)  #
     #        = input_S  (pure state from qiskit circuit |  None for random mixed states)         #
     # ------------------------------------------------------------------------------------------ #
+    # --------------------------------------------------------------------- #
+    #   (D-3) Using the optimization method (MiFGD  or RGD)                 #
+    #       to do the tomography with                                       #
+    #             some default parameters needed by MiFGD/RGD respectively  #
+    # --------------------------------------------------------------------- #
 
-    target_density_matrix, input_S, T_rec, Ncpu_meas = Get_measurement_by_labels(params_setup, label_list, New_Pj_shot, \
-                                StVer, T_rec, measure_method)
+    if Obtain_Pj == 0 or Obtain_Pj == -1 or Obtain_Pj == -2: # usually run this
 
-    # -------------------------------------------------------------- #
-    #  get params_dict as the input for each optimization method     #
-    #           i.e.  used in both MiFGD &  RGD                      #
-    # -------------------------------------------------------------- #
+        #target_density_matrix, input_S, T_rec, Ncpu_meas, s_label, yProj = \
+        target_density_matrix, input_S, T_rec, Ncpu_meas = \
+            Get_measurement_by_labels(params_setup, label_list, T_rec)
 
-    params_dict = Get_param.Initial_params(Dir, params_setup, target_density_matrix)
+        T_Rho, Wk_Rho = Default_Setting_Run_Tomography(params_setup, \
+                        target_density_matrix, input_S, T_rec)
 
-    if input_S:
-        print(' ********************************************************* \n')
-        print('   there exists pure state   ')
-        params_dict['target_state'] = input_S.get_state_vector()            
+    elif Obtain_Pj == 1:    #  continue from existing Rho
 
+        if StateName == 'KapRnd':   # continue generate more Kappa
+            #List_Kappa = [100]
+            #List_alpha = [0.25, 0.5, 1, 2, 3]
+            #List_Kappa = [80]
 
+            List_alpha = [8, 14]
 
-    # ------------------------------------------------------ #
-    #   (D-3)   start executing the optimization method      #
-    #               MiFGD  &/or  RGD   method                #
-    # ------------------------------------------------------ #
-
-    if Call_RGD == 1:
-
-        print('\n')
-        print(' ++++++++++++++++++++++++++++++++++++++++++++++++++++++ ')
-        print(' ++           start calculating  RGD                 ++ ')
-        print(' ++++++++++++++++++++++++++++++++++++++++++++++++++++++ \n')
-
-        exec(open('RGD_optRun.py').read())
-        Ttot.append(('RGD', tw2b - tw2a))
-        T_rec['RGD']  = tw2b - tw2a
-
-        print("The total time for ALL is {}".format(Ttot))
-
-        #wk_list.append(worker)
-        #Wk_dict['RGD'] = [Rpm, worker]              #       Rpm = [InitX_RGD, Md_tr, Md_alp, Md_sig]
-        Wk_dict['RGD'] = [Rpm, wc]              #       Rpm = [InitX_RGD, Md_tr, Md_alp, Md_sig]
-        del worker
-
-    if Call_MiFGD == 1:
-
-        print(' ---------   to call MiFGD_call.py   -----------')
-
-        for ii in range(0, Num_mu):
-
-            mu = muList[ii]
-            print('\n ----------------  {}-th mu = {}   start ------------------ \n'.format(ii, mu))
-
-            params_dict['eta'] = 0.01       #  only for MiFGD
-            params_dict['mu'] = mu          #  only for MiFGD
-
-            exec(open('MiFGD_optRun.py').read())
-            Ttot.append((mu, tw2b - tw2a))
-            T_rec[mu] = tw2b - tw2a
-
-            #wk_list.append(worker)
-            #Wk_dict[mu] = worker
-            Wk_dict[mu] = wc
-            del worker
-
-            #print(' ----------------  {}-th mu = {}   done  ----------------\n\n'.format(ii, mu))
-
-        print("The total time for each mu is {}".format(Ttot))
-    
-
-    # ----------------------------- #
-    #   show some results           #
-    # ----------------------------- #
-    print(' --------------------- \n   Target_Err:\n')
-    #Target_Err = {}
-    #for wk, mt in zip(wk_list, Ttot):
-    #    print(' ({:.3},  {}), '.format(mt[0], wk.Target_Err_Xk[-1]))
-    for result in Ttot:
-        method = result[0]
-        wk     = Wk_dict[method]
-        if method == 'RGD':         #  or  isinstance(wk, list)
-            wk = wk[1]              #  Wk_dict['RRD'] = [Rpm, worker]
-        print(' ({:.3},  {}), '.format(method, wk.Target_Err_Xk[-1]))
-    print('\n')
+            T_Rho, Wk_Rho = Add_More_Kappa(params_setup, T_rec, List_alpha)
 
 
-    if To_save_X0 == 1:             #  to save the initial X0 or not
-        w_X0 = {}
-        #for wk, mt in zip(wk_list, Ttot):
-        for result in Ttot:
-            method = result[0]
-            wk     = Wk_dict[method]    #  Wk_dict[mu]    = worker
-            if method == 'RGD':         #  or  isinstance(wk, list)
-                wk = wk[1]              #  Wk_dict['RRD'] = [Rpm, worker]
+    elif Obtain_Pj == 2:    # having more samples (only for 'rand')
 
-            if wk.InitX >= 0:
-                if wk.method == 'MiFGD':
-                    w_X0[method] = (wk.U0, wk.X0)
-                elif wk.method == 'RGD':
-                    w_X0[method] = (wk.u0, wk.v0, wk.s0, wk.X0)
+        Samples = 'sample1'
+        Num_Rho  = 5
 
-        F_X0 = '{}/X0.pickle'.format(meas_path)
-        with open(F_X0, 'wb') as f:
-            pickle.dump(w_X0, f)
+        params_setup = \
+            Sample_Rnd_Tomography(params_setup, Samples, Num_Rho, T_rec)
 
-    #exec(open('Show_Results.py').read())
 
-    # ------------------------  #
-    #   record some results     #
-    # ------------------------  #
-    Fname = '{}_Rec_info.txt'.format(Dir)
-    print('Fname = {}'.format(Fname))
-    f = open(Fname, 'a')
-
-    f.write('\n ------------------------------------------------- \n')
-    f.write(' Fname = {}\n'.format(Fname))
-    f.write('     Nk       = {}\n'.format(Nk))
-    f.write('     m        = {}\n'.format(m))
-    f.write('     mea      = {}\n'.format(mea))
-    f.write('     version  = {}\n'.format(version))
-    f.write('     meas_path    = {}\n'.format(meas_path))
-
-    f.write('     Pj_method    = {}\n'.format(Pj_method))
-    f.write('     mea_method   = {}\n'.format(mea_method))
-    f.write('     measure_method   = {}\n'.format(measure_method))
-    f.write(' Time (projection)  = {}  [num_cpus] = {}\n'.format(T_rec['proj'], Ncpu_Pj))
-    f.write(' Time (measurement) = {}  [num_cpus] = {}\n\n'.format(T_rec['measurement'], Ncpu_meas))
-    
-    for ii in range(len(Ttot)):
-        md, dt = Ttot[ii]
-
-        if isinstance(md, str):        # RGD  method
-            Rpm, wk = Wk_dict[md]
-            f.write('   {}, Rpm = [InitX, Md_tr, Md_alp, Md_sig, Ch_svd] = {}  -->  time = {}, '.format(md, Rpm, dt))
-
-        else:                          # MiFGD method
-            wk = Wk_dict[md]
-            f.write('   mu  =  {:.3}                                                          -->  time = {}, '.format(md, dt))
-
-        Err_rel_Xk    = wk.Err_relative_Xk[-1]
-        Err_Target_Xk = wk.Target_Err_Xk[-1]
-        Nite          = wk.iteration
-        converged     = wk.converged
-
-        f.write(' {} iter converge? {}: relative Err = {}, Target Err = {}\n'.format(Nite, converged, Err_rel_Xk, Err_Target_Xk))
-
-    f.close()
+    print(' ******   Happy Ending   *****')

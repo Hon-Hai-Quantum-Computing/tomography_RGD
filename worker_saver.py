@@ -9,7 +9,7 @@ class worker_container():
         self.StateName        = worker.StateName
         self.relative_error_tolerance = worker.relative_error_tolerance
 
-
+        self.trace            = worker.trace
         self.num_elements     = worker.num_elements
         self.num_labels       = worker.num_labels
 
@@ -21,7 +21,6 @@ class worker_container():
 
         self.Nr               = worker.Nr
         self.meas_path        = worker.meas_path
-
 
         self.method           = worker.method
         
@@ -76,7 +75,30 @@ class worker_container():
 
 
         elif self.method == 'MiFGD':
+            self.eta            = worker.eta
             self.mu             = worker.mu
+            self.U0             = worker.U0
+            
+            self.Option         = worker.Option
+
+            self.Init_Time      = worker.Init_Time
+
+            if self.InitX == 1 or self.InitX == 2:
+                self.Val_Nr         = worker.Val_Nr
+                self.Valpos         = worker.Valpos
+
+            if self.Option == 1:
+                self.etaTh          = worker.etaTh
+                self.nZ0            = worker.nZ0
+                self.nAA            = worker.nAA
+                self.DeNom          = worker.DeNom
+            elif self.Option == 2:
+                self.etaSpecN       = worker.etaSpecN
+                self.nZ0_specN      = worker.nZ0_specN
+                self.nAA_specN      = worker.nAA_specN
+                self.DeNom_SN       = worker.DeNom_SN
+
+
 
     def save_Run_Time(dt):
         self.RunT     =    dt           #   total Run time

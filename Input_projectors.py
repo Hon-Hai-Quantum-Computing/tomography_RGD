@@ -12,6 +12,8 @@ reload(projectors)
 import Get_param
 reload(Get_param)
 
+from Gen_localPauli import Gen_Site_2s_Pauli
+
 def compare_proj_dict(label_list, Proj_dict1, Proj_dict2):
 
     diff = []
@@ -67,7 +69,17 @@ def combine_proj_SaveInOne(proj_path, If_Return=0):
     elif If_Return == 1:
         return bulk_Pj, label_sorted, Pj_combine, num_cpus
 
-def Get_label_list_by_Projector(Nk, m, New_Pj_shot, proj_path, Pj_method, T_rec):
+def Get_label_list_by_Projector(params_setup, New_Pj_shot):
+#def Get_label_list_by_Projector(Nk, m, New_Pj_shot, proj_path, Pj_method):
+
+    Nk         = params_setup['n']
+    m          = params_setup['num_labels']
+    proj_path  = params_setup['projector_store_path']
+    Pj_method  = params_setup['Pj_method']
+    #StateName  = params_setup['StateName']
+
+    Obtain_Pj  = params_setup['Obtain_Pj']
+
     # ------------------------------------------------------------------ #
     #           projectors  ==> generate / loading  label_list           #
     # ------------------------------------------------------------------ #
@@ -81,7 +93,20 @@ def Get_label_list_by_Projector(Nk, m, New_Pj_shot, proj_path, Pj_method, T_rec)
         tp0 = time.time()
 
         print(' -------------     Generate new labels    ------------')
-        label_list = projectors.generate_random_label_list(m, Nk)
+        
+        if Obtain_Pj == -1:     #   from specification of Pauli list
+
+            ALL_sitePauli, ALL_2sPauli, symb_P9, numB2s = Gen_Site_2s_Pauli(Nk)
+            label_list = ALL_sitePauli + ALL_2sPauli
+            print(' len(label_list) = {}'.format(len(label_list)))
+
+            print('  symb_P9       = {}'.format(symb_P9))
+            print('  ALL_sitePauli = {}'.format(ALL_sitePauli))
+            print('  ALL_2sPauli   = {}'.format(ALL_2sPauli))
+            print("     numB2s     = {}".format(numB2s))
+
+        else:                   #   from random sampling of Pauli list
+            label_list = projectors.generate_random_label_list(m, Nk)
         #print(np.array(label_list))
 
         # --------------------------------- #
@@ -124,6 +149,13 @@ def Get_label_list_by_Projector(Nk, m, New_Pj_shot, proj_path, Pj_method, T_rec)
     print('    num of saved bulk Proj              = {}\n\n'.format(saveP_bulk))
     print('  <<<<<<<<                Do_projector time    =  {}           >>>>>>\n'.format(tp1 - tp0))
     
+    # ----------------------------------------------------- #
+    #       record some information about the simulation    #
+    # ----------------------------------------------------- #
+
+    T_rec = {}          
+    T_rec['Nk'] = Nk
+    T_rec['m']  = m
     T_rec['proj'] = tp1 - tp0
 
     return label_list, T_rec, num_cpus, saveP_bulk, Partition_Pj

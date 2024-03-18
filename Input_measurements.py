@@ -14,7 +14,7 @@ import multiprocessing
 import Get_param
 
 from Utility import Gen_Rho, Gen_randM, state_measure, state_measure_save, state_S_coef, split_list
-
+from Utility import Gen_Wst
 #from Utility import State_Naming, Gen_Rho, Gen_randM, state_measure, \
 #                    state_measure_save, state_measure_wID, state_S_coef, split_list, mp_state_measure
 
@@ -297,7 +297,7 @@ def Pure_state_measure(params_setup, label_list, measure_method=3):
     m          = params_setup['num_labels']
     mea        = params_setup['num_shots']
     StateName  = params_setup['StateName']
-    Dir        = params_setup['Dir']
+    #Dir        = params_setup['Dir']
     #Dir0       = params_setup['Dir0']
     #Nr         = params_setup['Nr']
     #proj_path  = params_setup['projector_store_path']
@@ -328,7 +328,9 @@ def Pure_state_measure(params_setup, label_list, measure_method=3):
         # --------------------------------------------------- #
         #   save measurement_dict  in  xxx_qiskit.dat         #
         # --------------------------------------------------- #
-        state_measure_save(Dir, params_setup, label_list, 
+
+        #state_measure_save(Dir, params_setup, label_list, 
+        state_measure_save(meas_path, params_setup, label_list, 
                 measurement_dict, data_dict_list, backend,
                 input_S, target_density_matrix, rho)
 
@@ -356,8 +358,9 @@ def Pure_state_measure(params_setup, label_list, measure_method=3):
     return t_parallel, num_cpus
 
 
-def Get_measurement_by_labels(params_setup, label_list, New_Pj_shot, StVer, \
-            T_rec, measure_method = 3):
+#def Get_measurement_by_labels(params_setup, label_list, New_Pj_shot, StVer, \
+#            T_rec, measure_method = 3):
+def Get_measurement_by_labels(params_setup, label_list, T_rec):
                               
     tm0 = time.time()
 
@@ -366,36 +369,50 @@ def Get_measurement_by_labels(params_setup, label_list, New_Pj_shot, StVer, \
     mea        = params_setup['num_shots']
     StateName  = params_setup['StateName']
     Nr         = params_setup['Nr']
-    Dir0       = params_setup['Dir0']
-    Dir        = params_setup['Dir']
+    #Dir0       = params_setup['Dir0']
+    #Dir        = params_setup['Dir']
+    DirRho     = params_setup['DirRho']
     proj_path  = params_setup['projector_store_path']
     meas_path  = params_setup['measurement_store_path']
     Pj_method  = params_setup['Pj_method']
     mea_method = params_setup['mea_method']
 
+    New_Pj_shot    = params_setup['New_Pj_shot']
+    measure_method = params_setup['measure_method'] 
+    StVer          = params_setup['StVer']
 
-    if New_Pj_shot[1] == 1:           #  do qiskit -> do shot measurement
+    if New_Pj_shot[1] == 1:     #  do qiskit -> do shot measurement
         print('  ********   starting to DO measurement (qiskit or qutip)  ************** \n')
 
-        if StateName == 'rand':
+        if StateName == 'rand' or StateName == 'KapRnd':
 
-            target_density_matrix, rho = Gen_randM(Nk, StateName, Nr, StVer, Dir0)
+            target_density_matrix, rho = Gen_randM(Nk, StateName, Nr, StVer, DirRho)
             input_S = None
             #print('   Dir0   = {}'.format(Dir0))
             #print('   StVer  = {}'.format(StVer))
             #print('    rho   = {}'.format(rho))
 
             s_label, yProj, zN, yProj_Exact = \
-                state_S_coef(Dir, params_setup, target_density_matrix, rho)
+                state_S_coef(params_setup, target_density_matrix, rho)
             
             num_cpus = 1
 
-        else:
+        #else:           # only for pure states
+        elif StateName == 'GHZ' or StateName == 'Had':
             t_parallel, num_cpus = Pure_state_measure(params_setup, label_list, measure_method)
             T_rec['parallel_measure'] = t_parallel
 
+        elif StateName == 'quGH' or StateName == 'quHa' or StateName == 'quWst':
 
-    elif New_Pj_shot[1] == 2:           #  to load measurement_dict from  xxx_qiskit.dat
+            Wst, target_density_matrix = Gen_Wst(Nk, DirRho)
+
+            s_label, yProj, zN, yProj_Exact = \
+                state_S_coef(params_setup, target_density_matrix)
+
+            input_S = None
+            num_cpus = 1
+
+    elif New_Pj_shot[1] == 2:   #  to load measurement_dict from  xxx_qiskit.dat
 
         if measure_method == 3:
             num_cpus, label_part = split_label_4_measure(label_list)
@@ -408,16 +425,16 @@ def Get_measurement_by_labels(params_setup, label_list, New_Pj_shot, StVer, \
 
     elif New_Pj_shot[1] == 0:           #  to load measurement_list from  file
 
-        if StateName == 'rand':
+        if StateName == 'rand' or StateName == 'KapRnd':
 
             version  = params_setup['version']
             Noise    = params_setup['Noise']
 
             ver_meas = version[1]
-            Model    = Noise[0]
+            zModel    = Noise
 
-            Fname1 = '{}/zN{}_v{}_Noise'.format(meas_path, Model, ver_meas)
-            Fname2 = '{}/zN{}_v{}_measurements'.format(meas_path, Model, ver_meas)
+            Fname1 = '{}/zN{}_v{}_Noise'.format(meas_path, zModel, ver_meas)
+            Fname2 = '{}/zN{}_v{}_measurements'.format(meas_path, zModel, ver_meas)
             print("  Fname1 = {}".format(Fname1))
             print("  Fname2 = {}".format(Fname2))
 
@@ -474,6 +491,7 @@ def Get_measurement_by_labels(params_setup, label_list, New_Pj_shot, StVer, \
     dt = tm1 - tm0
     print('\n  <<<<<<<<               Do_measure time             = {}           >>>>>>\n'.format(dt))
     T_rec['measurement'] =  dt
+    T_rec['Ncpu_meas']   = num_cpus
 
     #print(" sys.argv content = {}".format(sys.argv))
     #print('     argv length  = {}'.format(len(sys.argv)))
@@ -489,4 +507,4 @@ def Get_measurement_by_labels(params_setup, label_list, New_Pj_shot, StVer, \
 
 
     return target_density_matrix, input_S, T_rec, num_cpus
-
+    #return target_density_matrix, input_S, T_rec, num_cpus, s_label, yProj

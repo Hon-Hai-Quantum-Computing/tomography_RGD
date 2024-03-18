@@ -6,7 +6,7 @@ from mpl_toolkits.axes_grid.inset_locator import (inset_axes, InsetPosition,
                                                   mark_inset)
 import numpy as np
 
-from Utility import State_Naming
+from Utility import State_Naming, Params_define
 import pickle
 import os
 
@@ -1097,29 +1097,56 @@ def Data_Info(argv):
     #   to load  each worker        #
     # ----------------------------- #
 
-    Dir, Name, params_setup, version, proj_path, meas_path, Dir0, StVer = \
-            State_Naming(Nk, StateName, m, mea, Nr, version, New_Pj_shot, StVer, Pj_method, mea_method, measure_method)
+    params_setup = Params_define(Nk, StateName, m, mea, Nr, \
+                Pj_method, mea_method, measure_method) 
 
-    ver_Prj = version[0]
+    params_setup = State_Naming(StVer, version, \
+                        params_setup, New_Pj_shot)
+
+    #Dir, Name, params_setup, version, proj_path, meas_path, Dir0, StVer = \
+    #        State_Naming(Nk, StateName, m, mea, Nr, version, New_Pj_shot, StVer, Pj_method, mea_method, measure_method)
+
+    #print(params_setup)
+
+    #ver_Prj = version[0]
     ver_mea = version[1]
-    zModel  = version[2]
+    #zModel  = version[2]
+    #Setup = Dir
+
+    Noise = params_setup['Noise']
+    if Noise == -1:     #  shot measurements (for pure states)
+        mea = params_setup['num_shots']
+
+    if params_setup['StateName'] == 'KapRnd':
+        Dir = '{}/'.format(params_setup['measurement_store_path'])
+    else:
+        Dir2m = params_setup['Dir2m']
+        Dir = '{}_'.format(Dir2m)
+
+    # --------------------------------------- #
+    #   specify the prefix of the FileName    #
+    # --------------------------------------- #
+    if Noise == -1:             #  shot measurements
+        Setup = '{}shot{}_v{}'.format(Dir, mea, ver_mea)
+    elif Noise == 0:            #  the exact coef  --> i.e.  no noise
+        #Setup = '{}_zN0_v{}'.format(Dir, ver_mea)
+        Setup = '{}zExact_v{}'.format(Dir, ver_mea)
+    else:
+        Setup = 'NotExist'
+        print(' +++++   Noise model does NOT exist !  ++++')
 
 
-    Setup = Dir
-    #print(Setup)
-
-    if zModel < 0:          #  the normal shot measurements
+    #if zModel < 0:          #  the normal shot measurements
         #Setup = 'data/{}/{}_m{}_s{}_shot{}_v{}'.format(StName, StName, m, ver_Prj, mea, ver_mea)
         #Setup = 'data/{}/{}_m{}_s{}/{}_m{}_s{}_shot{}_v{}'.format(StName, StName, m, ver_Prj, 
         #                                                          StName, m, ver_Prj, mea, ver_mea)
-        Setup = '{}_shot{}_v{}'.format(Setup, mea, ver_mea)
+    #    Setup = '{}_shot{}_v{}'.format(Setup, mea, ver_mea)
 
-
-    else:                       #  the noize model
+    #else:                       #  the noize model
         #Setup = 'data/{}/{}_m{}_s{}_zN{}_v{}'.format(StName, StName, m, ver_Prj, zModel, ver_mea)
         #Setup = 'data/{}/{}_m{}_s{}/{}_m{}_s{}_zN{}_v{}'.format(StName, StName, m, ver_Prj, 
         #                                                        StName, m, ver_Prj, zModel, ver_mea)
-        Setup = '{}_zN{}_v{}'.format(Setup, zModel, ver_mea)
+    #    Setup = '{}_zN{}_v{}'.format(Setup, zModel, ver_mea)
 
     print('     Setup = {}'.format(Setup))
     print('     *******************************************************  \n')
@@ -1162,6 +1189,7 @@ def method_2_worker(Setup, version, *method_argv):
     # --------------------------------------------- #
     #   directly stored worker or container         #
     # --------------------------------------------- #
+    print(' middle Fname = {}'.format(Fname))
 
     if os.path.exists('{}_wrapper.dat'.format(Fname)):
         Fname = '{}_wrapper.dat'.format(Fname)
@@ -1198,10 +1226,11 @@ if __name__ == "__main__":
     #   basic   setting             #
     # ----------------------------- #
 
+    #Nk, m, mea = 3, 10, 2400
     #Nk, m, mea = 6, 819, 2400
     #Nk, m, mea = 6, 819, 8600
     #Nk, m, mea = 8, 6553, 8600          #  10% = 6553,  20% = 13107
-    Nk, m, mea = 10, 314572, 8600           #  for rand ->  mea NOT matter
+    Nk, m, mea = 10, 314572, 8600       #  for rand ->  mea NOT matter
     #Nk, m, mea = 12, 838860, 8600
 
     StateName = 'rand'
@@ -1237,11 +1266,13 @@ if __name__ == "__main__":
 
     RG_info = InitX, Md_tr, Md_alp, Md_sig
 
-
-    Show_Case = 52
+    #Show_Case = -1
+    Show_Case = 52   # Fig_scaling.eps in the paper comparing different Nk
+    #Show_Case = 71   # Fig_rand10_diff_Nr.pdf   (different Nr)
     if Show_Case == -1:         #  single case test
         #Setup = 'data/GHZ-6/GHZ-6_m819_s1/GHZ-6_m819_s1_shot3600_v1'
-        Setup = 'data/GHZ-12/GHZ-12_m838860_s3/GHZ-12_m838860_s3_shot8600_v1'
+        #Setup = 'data/GHZ-12/GHZ-12_m838860_s3/GHZ-12_m838860_s3_shot8600_v1'
+        Setup = '../Tomography/calc/GHZ-3/GHZ-3_m10_s12/GHZ-3_m10_s12_shot2400_v1'
 
         version = [1, 1, -1]
 
@@ -1413,7 +1444,7 @@ if __name__ == "__main__":
         #plt.plot()
 
 
-    elif Show_Case == 52:                # different [Nk, m]
+    elif Show_Case == 52:         # different [Nk, m]  -->  Fig_scaling.eps
 
         mu_List   = [0.75]
         #mu_List   = [0.75, 0.5]
@@ -1428,7 +1459,9 @@ if __name__ == "__main__":
         #Nk_m_List = [[6, 819], [8, 3276], [10, 52428], [12, 838860]]     #  [Nk, m] 
         #Nk_m_List = [[6, 819], [8, 13107], [10, 209715], [12, 838860]]     #  [Nk, m] 
 
-        Nk_m_List = [[6, 1228], [8, 13107], [10, 209715], [12, 838860]]     #  [Nk, m] 
+        #Nk_m_List = [[6, 1228], [8, 13107], [10, 209715], [12, 838860]]     #  [Nk, m]  ==> paper 2023
+        Nk_m_List = [[6, 1228], [8, 13107]]
+
         #Nk_m_List = [[10, 209715]]     #  [Nk, m] 
 
         Nk_list   = [Nk for Nk, m in Nk_m_List]
@@ -1571,8 +1604,8 @@ if __name__ == "__main__":
 
         #FigName = './fig/Fig_scaling.pdf'
         FigName = './fig/Fig_scaling.eps'
-        plt.savefig(FigName)
-        #plt.plot()
+        #plt.savefig(FigName)
+        plt.plot()
 
 
     elif Show_Case == 51:                # different [Nk, m]

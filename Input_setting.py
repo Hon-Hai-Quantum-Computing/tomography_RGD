@@ -2,14 +2,20 @@
 
 def basic_sys_setting(Choose):
 
-    if Choose == 1:
+    if Choose == 0:
+        Nk = 2
+        m  = 5
+        mea = 100
+
+    elif Choose == 1:
+
         Nk = 3
         #m = 50
         #m = 5
-        #m = 10
+        m = 10
         #m = 20
         #m = 40
-        m = 64
+        #m = 64
 
         #mea = 100                   #  mea =  number of shots
         #mea = 500                   #  mea =  number of shots    
@@ -34,10 +40,11 @@ def basic_sys_setting(Choose):
     elif Choose == 3:
         Nk = 6
         #m = 50
+        #m = 153
         #m = int(0.05* (4**Nk))        # 204
         #m = int(0.1* (4**Nk))        #  409
-        m = int(0.2* (4**Nk))       #  819
-        #m = int(0.3* (4**Nk))       #  1228         
+        #m = int(0.2* (4**Nk))       #  819
+        m = int(0.3* (4**Nk))       #  1228         
         #m = int(0.4* (4**Nk))       #  1638
         #m = int(0.5* (4**Nk))       #  2048
         #m = int(0.6* (4**Nk))       #  2457
@@ -66,8 +73,9 @@ def basic_sys_setting(Choose):
         Nk = 8
         #m = 50
         #m = int(0.05* (4**Nk))      # 3276
-        m = int(0.1* (4**Nk))        # 6553
-        #m = int(0.2* (4**Nk))         # 13107
+        #m = int(0.1* (4**Nk))        # 6553
+        m = int(0.2* (4**Nk))         # 13107
+        #m = int(0.25* (4**Nk))         # 16384
         #m = int(0.3* (4**Nk))         # 19660
         #m = int(0.4* (4**Nk))
 
@@ -79,13 +87,22 @@ def basic_sys_setting(Choose):
         #mea = 8000
         mea = 8600
 
+    elif Choose == 45:
+        Nk = 9
+        #m = int(0.1* (4**Nk))       
+        #m = int(0.2* (4**Nk))         #  mea =  52428
+        m = int(0.3* (4**Nk))         #  mea =   78643
+
+        #mea = 1200                   #  mea =  number of shots
+        mea = 8600
+
     elif Choose == 5:
         Nk = 10
         #m = 50
-        #m = int(0.05* (4**Nk))        #   52428
+        #m = int(0.05* (4**Nk))       #   52428
         #m = int(0.1* (4**Nk))        #  104857
         #m = int(0.2* (4**Nk))        #  209715
-        #m = int(0.25* (4**Nk))        #  262144
+        #m = int(0.25* (4**Nk))       #  262144
         m = int(0.3* (4**Nk))        #  314572
 
 

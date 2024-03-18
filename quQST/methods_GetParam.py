@@ -31,8 +31,8 @@ class WorkerParm:
 	def __init__(self,
 				 process_idx,
 				 num_processes,
-				 params_dict, input_S):
-#				 params_dict):
+#				 params_dict, input_S):
+				 params_dict):
 
 		projector_store_path     = params_dict.get('projector_store_path', None)
 		num_iterations           = params_dict['num_iterations']
@@ -98,7 +98,8 @@ class WorkerParm:
 		#				label_list          = ['XII', 'YIY', 'YZY', 'ZXY', 'ZXZ']		#
 		#################################################################################
 
-		if self.Noise != None:		
+		#if self.Noise != None:		
+		if self.Noise == 'Exact':		
 			if Pj_method == 0:			#  original method
 				tomography_labels = [fname.split('.')[0] for fname in os.listdir(projector_store_path)]
 			elif Pj_method == 1:		#  new method
@@ -249,13 +250,18 @@ class WorkerParm:
 								in zip(*[label_list, bitvector_list])]
 			del data_dict
 
-		elif self.Noise != None:							#  entering noise model
+		#elif self.Noise != None:		#  entering noise model
+		elif self.Noise == 'Exact':		#  Exact coef:  i.e. no noise
+
 			print(' *******  using noise model as measured results ********')
 			print('measurement_store_path = {}'.format(measurement_store_path))
 			
-			Model    = self.Noise[0]
+			#Model    = self.Noise[0]
+			zModel   = 0				# i.e.  No noise (Exact)
+
 			ver_meas = version[1]
-			F_noiseMea = '{}/zN{}_v{}_measurements'.format(measurement_store_path, Model, ver_meas)
+			#F_noiseMea = '{}/zN{}_v{}_measurements'.format(measurement_store_path, Model, ver_meas)
+			F_noiseMea = '{}/zN{}_v{}_measurements'.format(measurement_store_path, zModel, ver_meas)
 
 			#with open(measurement_store_path, 'rb') as f:
 			with open(F_noiseMea, 'rb') as f:
@@ -421,7 +427,8 @@ class WorkerParm:
 		self.circuit_name = params_dict.get('circuit_name', '')
 		self.backend      = params_dict.get('backend', 'local_qiskit_simulator')
 
-		if self.Noise == None:
+		#if self.Noise == None:
+		if self.Noise == 'shot':		# i.e. shot measurement
 			self.num_shots    = params_dict.get('num_shots', 8192)
 		
 		self.complete_measurements_percentage = params_dict.get('complete_measurements_percentage', 40)
