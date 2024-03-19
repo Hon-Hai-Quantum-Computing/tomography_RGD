@@ -21,68 +21,58 @@
 
 ## necessary parameters:
 
-the basic parameters (Nk, iterations, ...), version control (for different data or samples), path for saving/loading projectors or measurements, target density matrix, and so on, are stored in the dictionary variable params_dict.
+The basic parameters (Nk, iterations, ...), version control (for different data or samples), path for saving/loading projectors or measurements, target density matrix, and so on, are stored in the dictionary variable params_dict.
 
 The path processing the data is defined in 
 Utility.py/State_Naming/Dir0.
 The default value of Dir0 is ./calc.
 
 
-
-
-
 1. system parameters
 
-   Nk    =  number of qubits
-   m     =  number of sampled Pauli matrices
-   mea   =  number of shot measurements
+-  Nk    =  number of qubits
+   -  m     =  number of sampled Pauli matrices
+-  mea   =  number of shot measurements
 
          [usage]   either directly define them
-                  or     call  basic_sys_setting(Choose) @  Input_setting.py
+                  or     call  basic_sys_setting(Choose) in  Input_setting.py
 
    StateName  =  'GHZ',  'Had',  'rand'   (where 'GHZ' and 'Had' are pure states)
 
    Nr      =   number of rank  [  fixed to 1   for  'GHZ', 'Had'   ]
    
    Noise   =   noise model  [only needed for mixed sates]
-         [  only implementing exact results now, i.e. not really implemented in the code]
-         different types for states
-         i.e.  pure states: = 0            (GHZ or Had)
-               'rand':      = [0, 0, 0.1]  (actually no effect now)
-
+   - only implementing exact results now, i.e. not really implemented in the code
+   -  different types for different states, i.e.
+      -  pure states: = 0            (GHZ or Had)
+      -  'rand':      = [0, 0, 0.1]  (actually no effect now) 
 
 2.  running cases record, i.e.  labelling the run cases 
 
-	StVer   =  control of the 'rand' state generation   
-   ('pure states': 0;  
-    'rand': [which version of generated data, to generate or not), 
+	- StVer   =  control of the 'rand' state generation   
+      - 'pure states': 0, i.e.  no need of this parameter
+      - 'rand': list of [which version of generated data, to generate or not], 
             (eg)  [1, 0] = [version 1, do not generate] 
                   [1, 1] = [version 1, generate a new one]         
-   )
 
-	version =  [version of generated states, version of generated measurement,  Noise]
-
+	- version =  [version of generated states, version of generated measurement,  Noise]
 
 
-the optimization program is to run directly
+## Calling the optimization method
+
+1. the optimization program is to run directly
    - MiFGD_optRun.py   for MiFGD method
    - RGD_optRun.py     for  RGD  method
 
-In MiFGD_otpRun.py, execute 
-    worker = methodsMiFGD.BasicWorker(params_dict, input_S)
-    worker.compute(InitX_MiFGD, Ld_MiFGD)
+2. In MiFGD_otpRun.py, execute 
+   - worker = methodsMiFGD.BasicWorker(params_dict, input_S)
+   - worker.compute(InitX_MiFGD, Ld_MiFGD)
 
+3. main_QST is the example to do the optimization over prepared measured y from the target_density_matrix. Feel free to do the same process by directly calling each necessary ingredient, 
 
-as long as all the data are prepared in the directories.
-The path for the saving/loading the projectos and measured y 
+- as long as all the data are prepared in the specified directories.
+- The path for the saving/loading the projectors and measured y can be different
 
-
-
-
-
-main_QST is the example to do the optimization over prepared measured y from the target_density_matrix. Feel free to do the same process by directly calling each necessary ingredient, including
-
-1. 
 
 
 ## producing sampled Pauli matrices 
