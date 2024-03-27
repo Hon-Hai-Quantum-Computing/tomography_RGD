@@ -37,13 +37,13 @@ The default value of Dir0 is ./calc.
 
 1. system parameters
 
-   Nk    =  number of qubits
-   m     =  number of sampled Pauli matrices
-   mea   =  number of shot measurements
-
+   - Nk    =  number of qubits
+   - m     =  number of sampled Pauli matrices
+   - mea   =  number of shot measurements
+```
          [usage]   either directly define them
                   or     call  basic_sys_setting(Choose) @  Input_setting.py
-
+```
    - StateName  =  'GHZ',  'Had',  'rand'   (where 'GHZ' and 'Had' are pure states)
 
    - Nr  =   number of rank  [  fixed to 1   for  'GHZ', 'Had'   ]
