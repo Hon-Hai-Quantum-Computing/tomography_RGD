@@ -44,6 +44,7 @@ The default value of Dir0 is ./calc.
          [usage]   either directly define them
                   or     call  basic_sys_setting(Choose) @  Input_setting.py
 ```
+
    - StateName  =  'GHZ',  'Had',  'rand'   (where 'GHZ' and 'Had' are pure states)
 
    - Nr  =   number of rank  [  fixed to 1   for  'GHZ', 'Had'   ]
