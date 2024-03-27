@@ -43,8 +43,8 @@ class WorkerParm:
 		target_DM                = params_dict.get('target_DM', None)
 
 		convergence_check_period = params_dict.get('convergence_check_period', 10)
-		relative_error_tolerance = params_dict.get('relative_error_tolerance', 0.0001)		#  original setting
-		#relative_error_tolerance = params_dict.get('relative_error_tolerance', 0.001)
+		#relative_error_tolerance = params_dict.get('relative_error_tolerance', 0.0001)		#  original setting
+		relative_error_tolerance = params_dict.get('relative_error_tolerance', 0.001)
 
 		parity_flavor            = params_dict.get('parity_flavor', 'effective')
 

@@ -101,7 +101,7 @@ def Print_Target_Err(Ttot, Wk_dict):
 
     print('\n')
 
-def FileRec_Tproj_Tmea(File_rec, T_rec, params_setup):
+def FileRec_Tproj_Tmea(File_rec, T_rec, params_setup, Ncpu_Pj):
 
     Nk        = params_setup['n']
     m         = params_setup['num_labels']
@@ -200,7 +200,7 @@ def FileRec_Tmethod(File_rec, Ttot, Wk_dict):
     f.close()
 
 def Tomography_over_measurement(params_setup, target_DM, input_S, \
-                                pm_RGD, pm_MiFGD, T_rec):
+                                pm_RGD, pm_MiFGD, T_rec, Ncpu_Pj):
 
     # -------------------------------------------------------------- #
     #  get params_dict as the input for each optimization method     #
@@ -276,8 +276,8 @@ def Tomography_over_measurement(params_setup, target_DM, input_S, \
 
             print('\n ----------------  {}-th mu = {}   start ------------------ \n'.format(ii, mu))
 
-            #for InitX_MiFGD in [1, 0]:
-            for InitX_MiFGD in [0]:
+            for InitX_MiFGD in [1, 0]:
+            #for InitX_MiFGD in [0]:
             #for InitX_MiFGD in [1]:
                 #for Option in [0, 1, 2]: 
                 #for Option in [2, 1, 0]: 
@@ -329,7 +329,7 @@ def Tomography_over_measurement(params_setup, target_DM, input_S, \
     #   output & record results     #
     # ----------------------------- #  
 
-    FileRec_Tproj_Tmea(File_rec, T_rec, params_setup)
+    FileRec_Tproj_Tmea(File_rec, T_rec, params_setup, Ncpu_Pj)
 
     FileRec_Tmethod(File_rec, Ttot, Wk_dict)
 
@@ -371,7 +371,9 @@ def Default_OptMethod_params():
     #muList = [3/4, 0.5, 1/3, 0.2, 0.25, 0.125]
     #Num_mu = 1     #  number of mu for running MiFGD
                     #  (eg) = 2 --> run cases of muList = [3/4, 0.5]
+
     #muList = [3/4, 0.25, 4.5e-5]
+    #muList = [4.5e-5, 3/4, 0.25]
     #Num_mu = 3      #  number of mu for running MiFGD
 
     #muList = [0.75]
@@ -422,7 +424,7 @@ def Default_OptMethod_params():
     return pm_MiFGD, pm_RGD
 
 def Default_Setting_Run_Tomography(params_setup, target_density_matrix,\
-                                input_S, T_rec):
+                                input_S, T_rec, Ncpu_Pj):
 
     pm_MiFGD, pm_RGD = Default_OptMethod_params()
 
@@ -438,7 +440,7 @@ def Default_Setting_Run_Tomography(params_setup, target_density_matrix,\
     # --------------------------------------------- #
 
     Ttot, Wk_dict = Tomography_over_measurement(params_setup, target_density_matrix, \
-                             input_S, pm_RGD, pm_MiFGD, T_rec)
+                             input_S, pm_RGD, pm_MiFGD, T_rec, Ncpu_Pj)
 
     T_Rho[DirRho]  = Ttot
     Wk_Rho[DirRho] = Wk_dict
@@ -499,7 +501,7 @@ def Tune_Kappa_Tomography(params_setup, target_density_matrix, input_S, T_rec, \
                     Kappa2, NewRho = pickle.load(f)
 
             Ttot, Wk_dict = Tomography_over_measurement(params_setup, NewRho, \
-                                        input_S, pm_RGD, pm_MiFGD, T_rec)
+                                        input_S, pm_RGD, pm_MiFGD, T_rec, Ncpu_Pj)
 
             DirRho               = params_setup['DirRho']
 
@@ -535,7 +537,7 @@ def Add_More_Kappa(params_setup, T_rec, List_alpha):
 
 
 
-def Sample_Rnd_Tomography(params_setup, Samples, Num_Rho, T_rec):
+def Sample_Rnd_Tomography(params_setup, Samples, Num_Rho, T_rec, Ncpu_Pj):
     """  (eg)      Samples = 'sample4'
                   Num_Rho  = 3
 
@@ -562,7 +564,7 @@ def Sample_Rnd_Tomography(params_setup, Samples, Num_Rho, T_rec):
             Get_measurement_by_labels(params_setup, label_list, T_rec)
 
         T_Rho, Wk_Rho = Default_Setting_Run_Tomography(params_setup, \
-                    target_density_matrix, input_S, T_rec)
+                    target_density_matrix, input_S, T_rec, Ncpu_Pj)
 
     print(' ---------- Run samples of RND completed --------- \n\n')
     return params_setup
@@ -738,7 +740,7 @@ if __name__ == "__main__":
     #  i.e.  StVer  =  [version R?, New or Generate]   for (random) State               #
     # --------------------------------------------------------------------------------- #
 
-    Choose = 7
+    Choose = 45
     Nk, m, mea = basic_sys_setting(Choose)
 
     # ---------------------------------------------------------- #
@@ -752,9 +754,9 @@ if __name__ == "__main__":
     #StateName = 'KapRnd';  Nr = 3;  Noise = 0;   StVer = [1, 0]    # load existing Rho
 
     #StateName = 'rand';   Nr = 3;  Noise = 0;    StVer = [1, 1]   # create new Rho
-    #StateName = 'rand';   Nr = 3;  Noise = 0;    StVer = [1, 0]   # load existing Rho
+    StateName = 'rand';   Nr = 3;  Noise = 0;    StVer = [1, 0]   # load existing Rho
 
-    StateName = 'Had';    Nr = 1;  Noise = -1;   StVer = 0      
+    #StateName = 'Had';    Nr = 1;  Noise = -1;   StVer = 0      
     #StateName = 'quGH';    Nr = 1;  Noise = 0;   StVer = 0      
     #StateName = 'quWst';    Nr = 1;  Noise = 0;   StVer = 0      
 
@@ -811,7 +813,7 @@ if __name__ == "__main__":
             Get_measurement_by_labels(params_setup, label_list, T_rec)
 
         T_Rho, Wk_Rho = Default_Setting_Run_Tomography(params_setup, \
-                        target_density_matrix, input_S, T_rec)
+                        target_density_matrix, input_S, T_rec, Ncpu_Pj)
 
     elif Obtain_Pj == 1:    #  continue from existing Rho
 
@@ -831,7 +833,7 @@ if __name__ == "__main__":
         Num_Rho  = 5
 
         params_setup = \
-            Sample_Rnd_Tomography(params_setup, Samples, Num_Rho, T_rec)
+            Sample_Rnd_Tomography(params_setup, Samples, Num_Rho, T_rec, Ncpu_Pj)
 
 
     print(' ******   Happy Ending   *****')

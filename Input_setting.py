@@ -90,8 +90,8 @@ def basic_sys_setting(Choose):
     elif Choose == 45:
         Nk = 9
         #m = int(0.1* (4**Nk))       
-        #m = int(0.2* (4**Nk))         #  mea =  52428
-        m = int(0.3* (4**Nk))         #  mea =   78643
+        m = int(0.2* (4**Nk))         #  mea =  52428
+        #m = int(0.3* (4**Nk))         #  mea =   78643
 
         #mea = 1200                   #  mea =  number of shots
         mea = 8600
