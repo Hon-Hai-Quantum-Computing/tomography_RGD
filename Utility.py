@@ -11,34 +11,16 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-#sys.path.append('./qutomo')
-#import methods
-
-
 sys.path.append('./quQST')
-
-#from quQST import projectors
-#from quQST import states
-#from quQST import measurements
-#from quQST import methodsRGD
 
 import projectors
 import states
 import measurements
 import methodsRGD
 
-
-#sys.path.append('./qutomo')
-#import methods
-#import methodsMiFGD as methods
-
-from importlib import reload        ##  for reloading
-reload(projectors)
-
 import qutip as qu
 from qutip.states import basis
 
-#from Utility_RGD import Sm_dxd_list, A_1
 import Get_param
 
 # -------------------------- #
@@ -51,7 +33,7 @@ from functools import reduce
 from Gen_localPauli import counting_elements
 
 def Params_define(Nk, StateName, num_labels, num_shots, Nr, \
-                Pj_method, mea_method, measure_method, Obtain_Pj=0):
+                Pj_method, mea_method, measure_method, DirStore):
 
     Name = '{}-{}'.format(StateName, Nk)
     if StateName == 'rand':
@@ -59,12 +41,7 @@ def Params_define(Nk, StateName, num_labels, num_shots, Nr, \
     elif StateName == 'KapRnd':
         Name = '{}-r{}'.format(Name, Nr)
 
-    if Obtain_Pj == -1:   # specify Pauli list, instead of sampling
-
-        sym_Pauli     = ['X', 'Y', 'Z']
-        NumTerm_Pauli = counting_elements(Nk, sym_Pauli)
-        num_labels    = NumTerm_Pauli[1] + NumTerm_Pauli[2]
-
+    Dir0 = '{}/{}'.format(DirStore, Name)
 
     params_setup = {'n': Nk,
                    'Name': Name,
@@ -75,14 +52,14 @@ def Params_define(Nk, StateName, num_labels, num_shots, Nr, \
                    #'version': version,
                    #'StVer': StVer,
                    #'Noise': Noise,
-                   #'Dir0': Dir0,
+                   'Dir0': Dir0,
                    #'Dir': Dir,
                    #'measurement_store_path': Dir_meas,
                    #'projector_store_path': Dir_proj,
                    'Pj_method': Pj_method,
                    'mea_method': mea_method,
-                   'measure_method': measure_method,
-                   'Obtain_Pj': Obtain_Pj
+                   'measure_method': measure_method
+                   #'Obtain_Pj': Obtain_Pj
                    }
 
     return params_setup
@@ -150,6 +127,12 @@ def Params_Kappa_change(params_setup, Kappa, alpha, NewRho, s_new):
     if StVer[1] == 0:       #  reading existing Rho
         print(' New Rho with with New Kappa alrady existed!')
 
+        with open('{}/RhoKappa.dat'.format(DirRho), 'rb') as f:
+            Kappa2, NewRho = pickle.load(f)
+    
+        if not np.isclose(Kappa, Kappa2):
+            raise ValueError(' Kappa Not consistent in the DirRho')
+
     elif StVer[1] == 1:     #  recording new Rho & s_new
 
         with open('{}/RhoKappa.dat'.format(DirRho), 'wb') as f:
@@ -195,97 +178,6 @@ def Params_Kappa_change(params_setup, Kappa, alpha, NewRho, s_new):
 
     return params_setup, dt_meas
 
-def Manual_Read_Proj_Only(params_setup, Data_In, version, StVer):
-
-    Dir0 = Ver_Rho_Naming(params_setup, StVer, 1)
-
-    Dir_proj = Data_In[1]
-    Noise    = version[2]
-
-    params_setup['Dir0']                 = Dir0
-    params_setup['projector_store_path'] = Dir_proj
-
-    params_setup['StVer']                = StVer
-    params_setup['version']              = version
-    params_setup['Noise']                = Noise
-
-    return params_setup
-
-def Manual_Read_Data(params_setup, Data_In, version, StVer):
-
-    StateName = params_setup['StateName']
-    Name      = params_setup['Name']
-    m         = params_setup['num_labels']
-
-    DirRho   = Data_In[0]
-    Dir_proj = Data_In[1]
-    #pjFile   = Data_In[1]
-    #Dir_proj = '{}/{}'.format(DirRho, pjFile)
-
-    Obtain_Pj = params_setup['Obtain_Pj']
-    if StateName == 'KapRnd' and Obtain_Pj == 1:
-        Dp    = Dir_proj.split('/')[-1].split('_')[-1][1:]   #  version of Proj
-        version[0] = int(Dp)
-        print('  Obtain_Pj = {}, ver_Prj = {}'.format(Obtain_Pj, int(Dp)))
-
-    ver_Prj  = version[0]
-    ver_meas = version[1]
-    Noise    = version[2]
-
-    # ------------------------- #
-    #   specify the Dir_meas    #
-    # ------------------------- #
-
-    #zModel = Noise[0]
-    #Dir_meas = '{}/zN{}_v{}_measurements'.format(Dir, zModel, v_meas)
-
-    if StateName == 'KapRnd':
-        if Noise == 0:
-            zText = 'zExact'
-
-        Dir_meas = 'Pm{}_s{}_{}_v{}'.format(m, ver_Prj, zText, ver_meas)
-
-        if DirRho[-5] == '/':
-            Dir2m = DirRho[:-5]
-
-    elif Noise == 0:             #  the exact coef (for 'rand')
-        Dir2m = '{}/{}_m{}_s{}'.format(DirRho, Name, m, ver_meas)
-        Dir_meas = '{}_zN{}_v{}_measurements'.format(Dir2m, Noise, ver_meas)
-
-    elif Noise == -1:           #   the shot noise (GHZ or Had)
-
-        mea_method = params_setup['mea_method']
-        mea        = params_setup['num_shots']
-
-        if mea_method == 0:        #  original method
-            MeasureName = 'measurements'
-        elif mea_method == 1:      #  new method
-            MeasureName = 'Measure'
-
-        Dir2m    = '{}/{}_m{}_s{}'.format(DirRho, Name, m, ver_meas)
-        Dir_meas = '{}_shot{}_v{}_{}'.format(Dir2m, mea, ver_meas, MeasureName)
-
-    # ----------------------------------------- #
-    #   specify the dictionary params_setup     #
-    # ----------------------------------------- #
-    if StateName == 'KapRnd':
-        params_setup['measurement_store_path'] = '{}/{}'.format(DirRho, Dir_meas)
-        params_setup['measure_sub_path']       = Dir_meas
-
-    else:
-        params_setup['measurement_store_path'] = Dir_meas
-
-    params_setup['Dir2m']                = Dir2m
-    params_setup['DirRho']               = DirRho  
-    params_setup['projector_store_path'] = Dir_proj
-
-    params_setup['StVer']                = StVer
-    params_setup['version']              = version
-    params_setup['Noise']                = Noise 
-
-
-    return params_setup
-
 
 def Check_Dir_version(Dir0, StVer, Appendix=''):
         
@@ -326,19 +218,41 @@ def Check_Dir_version(Dir0, StVer, Appendix=''):
 def Ver_Rho_Naming(params_setup, StVer, GetDir0=0):
 
     StateName = params_setup['StateName']
-    Name      = params_setup['Name']
 
-    #Dir0 = 'data/{}'.format(Name)
-    #Dir0 = 'calc/{}'.format(Name)
-    #Dir0 = 'paper/{}'.format(Name)
-    Dir0 = '../Tomography/calc/{}'.format(Name)
-    #Dir0 = '../Tomography/data/{}'.format(Name)
+    StateName_List = ['GHZ', 'Had', 'rand', 'KapRnd', 'quWst']
+
+    if StateName not in StateName_List:
+        raise ValueError(' Specified StateName not implemented')
+
+    # ----------------------------- #
+    #   creating Dir0               #
+    # ----------------------------- #
+
+    Dir0 = params_setup['Dir0']
 
     if not os.path.exists(Dir0):
         os.makedirs(Dir0)
 
-    if GetDir0 == 1:
-        return Dir0
+    #if GetDir0 == 1:
+    #    return Dir0
+
+    # ----------------------------- #
+    #   check if existing DataRho   #
+    # ----------------------------- #
+
+    Data_In   = params_setup['Data_In']
+
+    if len(Data_In) !=0 and Data_In[0] != '':  # existing DataRho specified in Data_In[0]
+
+        DirRho   = Data_In[0]
+
+        params_setup['DirRho']        = DirRho  
+        params_setup['StVer']         = StVer
+
+        if not os.path.exists(DirRho):
+            os.makedirs(DirRho)
+
+        return
 
     # ----------------------------------------- #
     #   extra treatment for random states       #
@@ -348,7 +262,7 @@ def Ver_Rho_Naming(params_setup, StVer, GetDir0=0):
 
     if StateName == 'KapRnd':           #  to change the kappa
 
-        Dir2p  = Dir0                    #  to convert to proj later
+        #Dir2p  = Dir0                    #  to convert to proj later
         #DirRho = Check_Dir_version(Dir0, StVer)     #  no change Dir0
         #DirRho = Check_Dir_version(Dir0, StVer, '_qutip')  #  no change Dir0
         DirRho, StVer = Check_Dir_version(Dir0, StVer, '/Kap0')  #  no change Dir0
@@ -356,20 +270,19 @@ def Ver_Rho_Naming(params_setup, StVer, GetDir0=0):
     elif StateName == 'rand':             #  random matrices
         
         DirRho, StVer = Check_Dir_version(Dir0, StVer)
-        Dir2p         = DirRho
+        #Dir2p         = DirRho
 
-    else:                               #  pure states (GHZ, Had)
-        DirRho = Dir0
-        Dir2p  = Dir0
+    else:                               #  pure states (GHZ, Had, quWst)
+        DirRho = Dir0           #  will be changed in later Ver_Proj_Naming
+        #Dir2p  = Dir0
+        
 
     params_setup['Dir0']   = Dir0
-    params_setup['DirRho'] = DirRho    
+    params_setup['DirRho'] = DirRho     #  may be changed in later Ver_Proj_Naming
     params_setup['StVer']  = StVer
 
-    return StVer, DirRho, Dir2p
 
-def Ver_Proj_Naming(params_setup, Dir2p, \
-                    version, New_Pj_shot):
+def Ver_Proj_Naming(params_setup, version):
     """ version[0]     = the version of the projector/Pauli matrices
 
         New_Pj_shot[0] = 1 -> to create new projectors/Pauli matrices 
@@ -378,12 +291,54 @@ def Ver_Proj_Naming(params_setup, Dir2p, \
     Name       = params_setup['Name']
     num_labels = params_setup['num_labels'] 
     Pj_method  = params_setup['Pj_method']
+
+    Data_In    = params_setup['Data_In']
     DirRho     = params_setup['DirRho']
+    Dir0       = params_setup['Dir0']
+
     StVer      = params_setup['StVer']
+
+    if StateName == 'KapRnd':           #  to change the kappa
+        Dir2p  = Dir0                   #  to convert to proj later
+    elif StateName == 'rand':           #  random matrices
+        Dir2p  = DirRho
+    else:                               #  pure states (GHZ, Had)
+        Dir2p  = Dir0
+    params_setup['Dir2p']    =  Dir2p
+
+    # --------------------------------- #
+    #   check if existing read in data  #
+    # --------------------------------- #
+    if len(Data_In) >0 and Data_In[1] != '':          #  specified DirProj
+
+        Dir_proj = Data_In[1]
+
+        xx = Dir_proj.split('/')[-1].split('_')
+        if xx[-1] == 'Proj':
+            Dp = xx[-2][1:]
+        elif xx[-1][0] == 's':
+            Dp = xx[-1][1:]
+        else:
+            #print('xx = {}'.format(xx))
+
+            Dp = 0
+            print(' Not defined! --> Let version[0] = Ver_Proj = {}'.format(Dp))
+        version[0] = int(Dp)
+
+        Noise    = version[2]
+
+        params_setup['projector_store_path'] = Dir_proj
+        params_setup['version']              = version
+        params_setup['Noise']                = Noise 
+
+        return
 
     # ----------------------------- #
     #   deal with projectors        #
     # ----------------------------- #
+
+    New_Pj_shot = params_setup['New_Pj_shot']
+
 
     if Pj_method == 0:      #  original MiFGD method
         Pj_Name = 'projectors'
@@ -391,7 +346,6 @@ def Ver_Proj_Naming(params_setup, Dir2p, \
         Pj_Name = 'Proj'
 
     ver_Prj = version[0]
-    #Dir = '{}/{}_m{}_s{}'.format(Dir0, Name, num_labels, ver_Prj)
 
     if StateName == 'KapRnd':
         Dir_proj = '{}/{}_m{}_s{}/'.format(Dir2p, Pj_Name, num_labels, ver_Prj)
@@ -407,8 +361,7 @@ def Ver_Proj_Naming(params_setup, Dir2p, \
         Dir2m = '{}/{}_m{}_s{}/{}_m{}_s{}'.format(Dir2p, Name, num_labels, ver_Prj, 
                                                          Name, num_labels, ver_Prj)
         Dir_proj = '{}_{}'.format(Dir2m, Pj_Name)
-        #Dir_proj = '{}/{}_m{}_s{}_projectors'.format(Dir, Name, num_labels, ver_Prj)
-        DirRho = '{}/{}_m{}_s{}'.format(DirRho, Name, num_labels, ver_Prj)
+        DirRhoNew = '{}/{}_m{}_s{}'.format(DirRho, Name, num_labels, ver_Prj)
 
 
     if New_Pj_shot[0] == 1:                 # i.e. Create New Projectors
@@ -428,9 +381,8 @@ def Ver_Proj_Naming(params_setup, Dir2p, \
                 Dir2m = '{}/{}_m{}_s{}/{}_m{}_s{}'.format(Dir2p, Name, num_labels, ver_Prj,
                                                                  Name, num_labels, ver_Prj)
                 Dir_proj = '{}_{}'.format(Dir2m, Pj_Name)
-                #Dir_proj = '{}/{}_m{}_s{}_projectors'.format(Dir, Name, num_labels,  ver_Prj)
             
-                DirRho = '{}/{}_m{}_s{}'.format(DirRho, Name, num_labels, ver_Prj)
+                DirRhoNew = '{}/{}_m{}_s{}'.format(DirRho, Name, num_labels, ver_Prj)
 
 
             print(' version (of projectors) = {}'.format(ver_Prj))
@@ -443,81 +395,115 @@ def Ver_Proj_Naming(params_setup, Dir2p, \
     #params_setup['Dir']                 = Dir
     params_setup['projector_store_path'] = Dir_proj
 
-    #return version, Dir2m, Dir_proj, DirRho
-    return version, Dir_proj, Dir2m
+    if StateName == 'GHZ' or StateName == 'Had' or StateName == 'quWst':
+        params_setup['DirRho'] = DirRhoNew     # important
 
-#def Ver_meas_Naming(StateName, Dir2m, num_labels, num_shots, mea_method, version, New_Pj_shot):
-def Ver_meas_Naming(params_setup, Dir2m, version, New_Pj_shot):
+
+def Ver_meas_Naming(params_setup):
     """ version[1]     = the version of the measurements
 
         New_Pj_shot[0] = 1 -> to create new measurements
     """
 
     StateName  = params_setup['StateName']
+    Name       = params_setup['Name']
+
     num_labels = params_setup['num_labels']
     num_shots  = params_setup['num_shots']
     mea_method = params_setup['mea_method']
 
+    New_Pj_shot = params_setup['New_Pj_shot']
+
+    version     = params_setup['version']
+    ver_Prj     = version[0]      # = version of projectors/Pauli matrices
+
+    StVer       = params_setup['StVer']
+
+    # ---------------------- #
+    #   specify the Dir2m    #
+    # ---------------------- #
+    DirRho  = params_setup['DirRho']
+    Dir2p   = params_setup['Dir2p']  
+
+    if StateName == 'KapRnd':
+        Dir2m = '{}/R{}'.format(Dir2p, StVer[0])
+
+    elif StateName == 'rand':  
+        Dir2m = '{}/{}_m{}_s{}/{}_m{}_s{}'.format(DirRho, Name, num_labels, ver_Prj, 
+                                                          Name, num_labels, ver_Prj)
+    else:                      #  pure state (GHZ, Had) 
+
+        Dir2m    = '{}/{}_m{}_s{}'.format(DirRho, Name, num_labels, ver_Prj)
+
+    params_setup['Dir2m']              = Dir2m
+
+    # ------------------------------ #
+    #   check if existing DirMeas    #
+    # ------------------------------ #
+
+    Data_In = params_setup['Data_In']
+
+    if len(Data_In) > 2:
+        Dir_meas = Data_In[2]
+        Dir2m    = '{}/{}_m{}_s{}'.format(Dir_meas, Name, num_labels, ver_Prj)
+
+        params_setup['measurement_store_path'] = Dir_meas
+        params_setup['Dir2m']                  = Dir2m
+        return
+    
     # ----------------------------- #
     #   deal with shots or noise    #
     # ----------------------------- #
-
-    ver_Prj  = version[0]      # = version of projectors/Pauli matrices
 
     zNoise   = version[2]      #  specify the noise model (0: exact)
 
     if StateName == 'KapRnd':
         print('    StateName = KapRnd')
 
-        ver_zMode1 = version[1]      #  version for this model
-
+        ver_meas = version[1]      #  version for this model
 
         if zNoise == 0:         #  i.e.  exact case
             zText = 'zExact'    #  noise model text
         #Dir_meas = 'zN{}_v{}_Exact'.format(zNoise, ver_Mode1)
             
-        Dir_meas = 'Pm{}_s{}_{}_v{}'.format(num_labels, ver_Prj, zText, ver_zMode1)
+        Dir_meas = 'Pm{}_s{}_{}_v{}'.format(num_labels, ver_Prj, zText, ver_meas)
 
         if New_Pj_shot[1] == 1:        #  create new measurement
             while os.path.exists('{}/R0/{}'.format(Dir2m, Dir_meas)):
                 
-                ver_zMode1 = ver_zMode1 + 1
-                Dir_meas = 'Pm{}_s{}_{}_v{}'.format(num_labels, ver_Prj, zText, ver_zMode1)
+                ver_meas = ver_meas + 1
+                Dir_meas = 'Pm{}_s{}_{}_v{}'.format(num_labels, ver_Prj, zText, ver_meas)
 
-                version = [ver_Prj, ver_zMode1, version[2]]
+                version = [ver_Prj, ver_meas, version[2]]
                 print("     version now = {}".format(version))
 
-            version = [ver_Prj, ver_zMode1, version[2]]
+            version = [ver_Prj, ver_meas, version[2]]
 
     elif zNoise == 0:                 #  the exact coef for 'rand'
-    #elif type(version[2]) == list:   #  the noise model case
         print(' -----  exact value for the noise model  --------- ')
 
-        ver_zMode1 = version[1]         #  version for this model
-        #zModel    = version[2][0]    #  specify the noise model
-        #zNoise    = version[2]
+        ver_meas = version[1]         #  version for this measurement
 
-        #Dir_meas = '{}_zN{}_v{}_measurements'.format(Dir2m, zModel, ver_Mode1)
-        Dir_meas = '{}_zN{}_v{}_measurements'.format(Dir2m, zNoise, ver_zMode1)
+        Dir_meas = '{}_zN{}_v{}_measurements'.format(Dir2m, zNoise, ver_meas)
 
         print('  Dir_meas  = {}'.format(Dir_meas))
 
         if New_Pj_shot[1] == 1:        #  create new measurement
             while os.path.exists(Dir_meas):
                 
-                ver_zMode1 = ver_zMode1 + 1
-                Dir_meas  = '{}_zN{}_v{}_measurements'.format(Dir2m, zNoise, ver_zMode1)
+                ver_meas  = ver_meas + 1
+                Dir_meas  = '{}_zN{}_v{}_measurements'.format(Dir2m, zNoise, ver_meas)
 
                 #version = [ver_Prj, ver_zMode1, version[2]]
-                version = [ver_Prj, ver_zMode1, zNoise]
+                version = [ver_Prj, ver_meas, zNoise]
 
                 print("     version now = {}".format(version))
 
-            version = [ver_Prj, ver_zMode1, zNoise]
+
+            version = [ver_Prj, ver_meas, zNoise]
 
 
-    elif zNoise == -1:               #  using shot measurements from qiskit
-    #elif type(version[2]) == int:    #  the normal case (with shots)
+    elif zNoise == -1:         # (GHZ or Had) using shot measurements from qiskit
 
         if mea_method == 0:        #  original method
             MeasureName = 'measurements'
@@ -545,8 +531,7 @@ def Ver_meas_Naming(params_setup, Dir2m, version, New_Pj_shot):
 
 
     print('         version = {}'.format(version))
-
-    DirRho = params_setup['DirRho']
+    params_setup['version']            =  version
 
     if StateName == 'KapRnd':
         params_setup['measurement_store_path'] = '{}/{}'.format(DirRho, Dir_meas)
@@ -554,14 +539,34 @@ def Ver_meas_Naming(params_setup, Dir2m, version, New_Pj_shot):
     else:
         params_setup['measurement_store_path'] = Dir_meas
 
-    params_setup['Dir2m']                  = Dir2m
 
-    return version, Dir_meas 
-
+    #return version, Dir_meas 
 
 
 def State_Naming(StVer, version, \
         params_setup, New_Pj_shot, Data_In=[]):
+
+    # --------------------------------------- #
+    #   check if special New_Pj_shot          #
+    # --------------------------------------- #
+    Nk         = params_setup['n']          # number of qubits
+    num_labels = params_setup['num_labels']
+
+    if New_Pj_shot[0] == -1:   # specify Pauli list, instead of sampling
+
+        sym_Pauli        = ['X', 'Y', 'Z']
+        NumTerm_Pauli    = counting_elements(Nk, sym_Pauli)
+        num_labels_count = NumTerm_Pauli[1] + NumTerm_Pauli[2]
+
+        if num_labels != num_labels_count:
+            #raise ValueError('   num_labels not specified correctly')
+        
+            print(' ****************************************************** ')
+            print(' ***   New_Pj_shot[0] == -1  --> specify Pauli list  ** ')
+            print(' ***   --> num_labels is calculated and changed      ** ')
+            print(' ****************************************************** ')
+
+            params_setup['num_labels'] = num_labels_count
 
     # ----------------------------- #
     #   if specified Dir & PjFile   #
@@ -570,25 +575,11 @@ def State_Naming(StVer, version, \
     params_setup['New_Pj_shot'] = New_Pj_shot
     params_setup['Data_In']     = Data_In
 
-    if len(Data_In) > 0:
-        if Data_In[0] == '':        # only Dir_proj
-            params_setup = \
-                Manual_Read_Proj_Only(params_setup, Data_In, version, StVer)
-            
-        else:                       # [DirRho, Dir_proj]
-            params_setup =  \
-                Manual_Read_Data(params_setup, Data_In, version, StVer)
+    Ver_Rho_Naming(params_setup, StVer)         # DirRho
 
-        #return params_setup
+    Ver_Proj_Naming(params_setup, version)      # DirProj
 
-    elif len(Data_In) == 0:
-        #params_setup['Data_In'] = []
-        StVer, DirRho, Dir2p = Ver_Rho_Naming(params_setup, StVer)
-            
-        version, Dir_proj, Dir2m = Ver_Proj_Naming(params_setup, \
-                                        Dir2p, version, New_Pj_shot)
-
-        version, Dir_meas = Ver_meas_Naming(params_setup, Dir2m, version, New_Pj_shot)
+    Ver_meas_Naming(params_setup)               # DirMeas
 
     #return Name, params_setup, version, Dir_proj, Dir_meas, DirRho, StVer
     return params_setup
@@ -614,7 +605,8 @@ def Gen_Rho(Nk, StateName):
 
 
 def Gen_Wst(Nk, Dir0):
-
+    '''     Generate W state
+    '''
     pick = [0]*Nk    
     pick[0] = 1 
     Wst = basis([2]*Nk, pick)
@@ -780,37 +772,6 @@ def Tune_Kappa(u, s, vh, Nr, alpha):
     return NewRho, s_new, Kappa
 
 
-
-
-def Tune_Kappa_wrong(u, s, vh, Kappa, Nr, alpha):
-    
-    Kap_Now = s[0] / s[Nr-1]
-
-    Ratio = Kappa /  np.exp((Nr-1)*alpha)
-    print('Ratio = {}, (Kappa, alpha) = ({}, {}), Kap_Now = {}'.format(Ratio, Kappa, alpha, Kap_Now))
-    
-    s_new = np.ones(Nr)
-    for ii in range(1, Nr):
-        kk = Nr - ii - 1
-
-        print('   {}-th index --> distance = {}'.format(kk, ii))
-
-        s_new[kk] = Ratio * np.exp(ii*alpha)
-
-    Nrm = sum(s_new)
-    s_new = s_new / Nrm
-
-    print('s_new = {}, real Ratio = {}'.format(s_new, s_new[0]/s_new[-1]))
-    print('sum(s_new) = {}\n\n'.format(sum(s_new)))
-
-
-    # ----------------- #
-    #   new Rho         #
-    # ----------------- #
-    
-    NewRho = u @ np.diag(s_new) @ vh
-    return NewRho, s_new
-
 # ------------------------- #
 #   for parallel CPU usage  #
 # ------------------------- #
@@ -921,16 +882,6 @@ def state_measure(num_shots, labels, state):
     """
 
     print('      *****  start state_measure for #labels={}\n'.format(len(labels)))
-    #num_qubits = params_setup['n']
-    #num_labels = params_setup['num_labels']
-
-    #print(' -------------     Generate new labels    ------------')
-    #labels = projectors.generate_random_label_list(num_labels, num_qubits)
-    #print(np.array(labels))
-
-    #num_shots  = params_setup['num_shots']
-    #version    = params_setup['version']
-    #ver_Shot   = version[1]
 
     backend    = 'qasm_simulator'                  ## Circuits ##
 
@@ -948,8 +899,6 @@ def state_measure(num_shots, labels, state):
     return measurement_dict, data_dict_list, backend
 
 
-#def state_measure(Dir, params_setup, state, target_density_matrix, rho):
-#def state_S_coef(Dir, params_setup, target_density_matrix, rho):
 def state_S_coef(params_setup, target_density_matrix, rho=[]):
     """  (input)
             version to record which version we are recording
@@ -989,25 +938,7 @@ def state_S_coef(params_setup, target_density_matrix, rho=[]):
     coefI = np.sqrt(m / 2**Nk)
 
     method = 2
-    if method == 1:
-        # ----------------------------------------- #
-        #   constructing Pauli matrix from qutip    #
-        # ----------------------------------------- #
-        S = Sm_dxd_list(labels)
-
-        measurement_scale = A_1(S, Nk, m, qu.Qobj(rho, dims=[[2]*Nk, [2]*Nk]))
-
-        coefS_list = measurement_scale * coefI
-
-        while not os.path.exists(Fname):
-            with open(Fname, 'wb') as f:
-                pickle.dump([coefS_list, \
-                        labels, params_setup, target_density_matrix, rho], f)
-
-        #return np.asarray(labels), coefS_list
-        yProj_Exact = coefS_list
-
-    elif method == 2:
+    if method == 2:
         # ------------------------------------------------------ #
         #        loading projectors --> get coef from trace      #
         # ------------------------------------------------------ #
@@ -1060,7 +991,7 @@ def state_S_coef(params_setup, target_density_matrix, rho=[]):
 
 
     if not os.path.exists(meas_path):
-        os.mkdir(meas_path)
+        os.makedirs(meas_path)
 
 
     print(' Fname1 = {}'.format(Fname1))
@@ -1162,63 +1093,6 @@ def Get_measurement_list(measurement_store_path):
 
     return label_list, measurement_list
 
-
-def Get_Pauli_coef(Dir, label_list, X, m, Nk):
-
-    # ------------------------------------------------------------- #
-    #   get measurement_list from direct trace of Pauli matrix  S   #
-    # ------------------------------------------------------------- #
-
-    S = Sm_dxd_list(label_list)
-
-    mS_scale = A_1(S, Nk, m, qu.Qobj(X, dims=[[2]*Nk, [2]*Nk]))
-    #mS2 = methodsRGD.A_1(S, Nk, m, qu.Qobj(X, dims=[[2]*Nk, [2]*Nk]))
-
-    # --------------------------------- #
-    #   loading the projectors          #
-    # --------------------------------- #
-    projector_store_path = '{}_projectors'.format(Dir)
-
-    start = 0
-    end = m
-    projector_dict = projectors.ProjectorStore.load(projector_store_path, label_list[start:end])
-    #projector_dict = projectors.ProjectorStore.load(projector_store_path, label_list)
-
-    projector_list = [projector_dict[label] for label in label_list]
-
-    yAmea = methodsRGD.Amea(projector_list, X, m, 2**Nk)
-
-
-    coefI = np.sqrt(m / 2**Nk)
-
-    mS    = mS_scale * coefI
-    yProj = yAmea    * coefI
-
-    crite = 1e-10
-    if np.max(np.abs(mS - yProj)) > crite:
-        print(' ERROR btw  mS  &  yProj')
-        return
-
-    return mS, yProj
-
-
-def Reorder_Pj_Get_coef(Dir, label_list, proj_path, X, m, Nk):
-    # --------------------------------------------------------- #
-    #   generate & store projectors  from input label_list      #
-    # --------------------------------------------------------- #
-
-    label_list_P = [fname.split('.')[0] for fname in os.listdir(proj_path)]
-
-    #print(label_list)
-    #print(label_list_P)
-    if set(label_list) != set(label_list_P):
-        print(' ERROR: inconsistent labels for loading projectors')
-        return 
-
-
-    mS, yProj = Get_Pauli_coef(Dir, label_list_P, X, m, Nk)
-
-    return mS, yProj, label_list_P
 
 # -------------------------------------------- #
 #      to deal with the Identity label         #
@@ -1342,10 +1216,10 @@ if __name__ == '__main__':
     New_Pj_shot = [0, 0]
 
     if StateName == 'rand':
-        Noise = [0, 0, 0.1]         # (eg) [method = 1 (Gaussian), parameters = (mu, sigma)]  
-        StVer = [1, 0]       #  [version, New or Generate]   for (random) State        
+        Noise = [0, 0, 0.1]     # (eg) [method = 1 (Gaussian), parameters = (mu, sigma)]  
+        StVer = [1, 0]          #  [version, New or Generate]   for (random) State        
     else:
-        Noise = 0                   #  = 0 -> the usual shot model 
+        Noise = 0            #  = 0 -> the usual shot model 
         StVer = 0            #  by default = 0
         
     version     = [2, 1, Noise]
@@ -1467,12 +1341,6 @@ if __name__ == '__main__':
 
         with open(Fname2, 'rb') as f:
             s_label_Ld, yProj_Ld, zN_Ld = pickle.load(f)
-
-    # ------------------------------------------------------ #
-    #   [comparison | verification]                          #
-    #   loading Proj --> get trace directly for comparison   #
-    # ------------------------------------------------------ #
-    mS_E1, yProj_E1, labels_P = Reorder_Pj_Get_coef(Dir, s_label, proj_path, rho, m, Nk)
 
 
     # --------------------------------- #

@@ -7,16 +7,8 @@
 from Input_projectors import Get_label_list_by_Projector
 
 
-#def Gen_Projectors(params_setup, params_control):
 def Gen_Projectors(params_setup):
 
-    #Nk         = params_setup['n']
-    #m          = params_setup['num_labels']
-    #proj_path  = params_setup['projector_store_path']
-    #Pj_method  = params_setup['Pj_method']
-    #StateName  = params_setup['StateName']
-
-    #New_Pj_shot = params_control['New_Pj_shot']
     New_Pj_shot = params_setup['New_Pj_shot']
         
     # ---------------------------------------------- #
@@ -24,7 +16,6 @@ def Gen_Projectors(params_setup):
     # ---------------------------------------------- #
     label_list, T_rec, Ncpu_Pj, saveP_bulk, Partition_Pj = \
         Get_label_list_by_Projector(params_setup, New_Pj_shot)
-        #Get_label_list_by_Projector(Nk, m, New_Pj_shot, proj_path, Pj_method)
         
     print('  ######       saveP_bulk = {}  for Ncpu_Pj = {}    ########\n'.format(saveP_bulk, Ncpu_Pj))
 
@@ -33,21 +24,11 @@ def Gen_Projectors(params_setup):
         New_Pj_shot[0] = 2
         label_list2, T_rec, Ncpu_Pj, saveP_bulk, Partition_Pj = \
             Get_label_list_by_Projector(params_setup, New_Pj_shot)
-            #Get_label_list_by_Projector(Nk, m, New_Pj_shot, proj_path, Pj_method)
-
-        #label_sorted, Pj_combine, bulk_Pj, Ncpu_Pj_Bk = projectors.ProjectorStore.combine_proj_bulk(proj_path)
-
-
-        #print(' label_list     = {}'.format(label_list))
-        #print(' label_list2    = {}'.format(label_list2))
 
         if not sorted(label_list) == label_list2:
             print('  *******   ERROR  in combining  projectors   *******\n')
             return
 
-    #print(' params_control = {}'.format(params_control))
-    #print(' Ncpu_Pj        = {}'.format(Ncpu_Pj))
-    
     return label_list, T_rec, Ncpu_Pj, saveP_bulk
 
 

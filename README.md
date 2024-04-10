@@ -55,7 +55,13 @@ The default value of Dir0 is ./calc.
          -  pure states: = 0            (GHZ or Had)
          -  'rand':      = [0, 0, 0.1]  (actually no effect now) 
 
-2.  running cases record, i.e.  labelling the run cases 
+2.  controlling parameters for each cases, i.e.  labelling each running case
+   - Notes for loading or generating sampled Pauli matrices & measurements 
+      - projectors = labels = Pauli matrices (obs = observables) 
+      - measurement: 
+         - using qiskit package: shot measurement for pure states       
+         - using qutip package: direct exact calculation for mixed states  
+         - Note the measurements for pure states & mixed states are different for the treatment now                           
 
 	- StVer   =  control of the 'rand' state generation   
       - 'pure states': 0, i.e.  no need of this parameter
@@ -63,7 +69,58 @@ The default value of Dir0 is ./calc.
          - [1, 0] = [version 1, do not generate] 
          - [1, 1] = [version 1, generate a new one]         
 
-	- version =  [version of generated states, version of generated measurement,  Noise]
+	- version =  [version of sampled Pauli operators, version of generated measurement,  Noise]
+      - version[0] =  version of sampled Projectors             
+      - version[1] =  version of measurement                          
+      - version[2] =  specification of Noise                                
+      - each version will have separate directory
+         - if loading Proj/measurement  --> will check if directory exists 
+         - if generating new Pj/measure --> will create new directory     
+
+3.  program control parameters for projectors | measurement
+
+   - Pj_method      = which method to generate | load projectors   (default = 1)
+      - = 0  (each Pauli matrix is stored separately)          
+      - = 1  (all Pauli matrices saved in chunks)    
+         - if: not too many --> saved in one Pj_List.pickle file 
+         - else: will save in several chunks of Pj_list_xx.pickle 
+ 
+   - mea_method     = which method to generate | load measurements (default = 1)
+      - = 0  (measurement for each Pauli obs is saved separately)  
+      - = 1  (measurement result is stored in chunks)              
+
+	- measure_method = to use parallel generation of measurement 
+      - = 1   directly calculate the whole label_list, i.e. no parallel calculation
+      - = 3   parallel measurement for each label part, i.e. parallel calculation [default]
+
+4.  Data_In = [DirRho, Dir_proj, Dir_meas]
+   - Note
+      - (default)  = []   (i.e. not specified)
+      - can also be [DirRho, Dir_proj]  (not specified Dir_meas)
+      - each directory can be empty '' (must check the consistency)
+   - DirRho = directory of storing Rho (only necessary for 'rand')
+   - Dir_proj = directory of storing projectors
+   - Dir_meas = directory of storing measurement results
+
+5.  New_Pj_shot = [how to obtain sampled Pauli operator, how to have measurements]
+   - default usage:
+      - New_Pj_shot = [1, 1] : creating new Projector & measurement  
+      - Caveat: other choice of New_Pj_shot must be consistent with Data_In, existing directory specified (Directory of Rho, projectors, measurements), etc.
+
+   - New_Pj_shot[0] = specify how to obtain the sampled Pauli operators
+      - = 0  loading sampled projectors              
+      - = 1  creating new sampled projectors    
+            (if the version already exists, then the version New_Pj_shot[0] will +1 automatically)
+      - = -1  Pauli operators generated from single & nearest-neighbor site Pauli matrices 
+      - =  2  combining each Pj_list_xx.pickle into single file first 
+    
+   - New_Pj_shot[1] = specify how to obtain the measured results
+      - = 0  loading measurement result from file                   
+      - = 1  doing measurement (qiskit shot or qutip calculation)    
+              (if the version already exists, then the version New_Pj_shot[1] will +1 automatically)
+      - = 2  converting shot measured data_dict into the coef needed, 
+            where measurement_list = the coef of each Pauli obs
+            (no longer maintained -> may need check)
 
 
 ## Calling the optimization method

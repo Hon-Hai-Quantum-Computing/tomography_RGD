@@ -315,6 +315,15 @@ class LoopMiFGD:
 
 		self.Unorm =  []			#  to record the norm of state  U
 
+
+		#print(' ****************************************** ')
+		#print('self.InitX = {}'.format(self.InitX))
+		#print('self.Nr  = {}'.format(self.Nr))
+		#print('self.momU.shape = {}'.format(self.momU.shape))
+		#print('self.momUdag.shape = {}'.format(self.momUdag.shape))
+		#print('self.stateU.shape  = {}'.format(self.stateU.shape))
+		#print('self.U0.shape = {}'.format(self.U0.shape))
+
 		for self.iteration in range(self.num_iterations):
 			if not self.converged:
 				self.step()
@@ -515,12 +524,20 @@ class BasicWorker(WorkerParm, LoopMiFGD):
 	def projection_diff(self):
 
 		#state_diff = np.zeros(self.num_elements, dtype=np.complex)
-		stateU_Diff = np.zeros((self.num_elements, self.Nr), dtype=np.complex)
+		#stateU_Diff = np.zeros((self.num_elements, self.Nr), dtype=np.complex)
+		stateU_Diff = np.zeros(self.stateU.shape, dtype=np.complex)
+		
 		for projector, measurement in zip(*[self.projector_list, self.measurement_list]):
 			#state_diff += self.single_projection_diff(projector, measurement, self.momentum_state)
 
 			#td1 = time.time()
-			diffU = self.single_projU_diff(projector, measurement, self.momU, self.momUdag)
+			diffU = self.single_projU_diff(projector, measurement, self.momU, self.momUdag)			
+
+			#print(' stateU_Diff = {}'.format(stateU_Diff))
+			#print('       diffU = {}'.format(diffU))
+			#print(' stateU_Diff.shape = {}'.format(stateU_Diff.shape))
+			#print('       diffU.shape = {}'.format(diffU.shape))
+
 			stateU_Diff += diffU
 			#state_diff += diff
 			#print(' state_diff  = \n {}'.format(state_diff))

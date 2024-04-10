@@ -1098,7 +1098,7 @@ def Data_Info(argv):
     # ----------------------------- #
 
     params_setup = Params_define(Nk, StateName, m, mea, Nr, \
-                Pj_method, mea_method, measure_method) 
+                Pj_method, mea_method, measure_method, '/stored directory') 
 
     params_setup = State_Naming(StVer, version, \
                         params_setup, New_Pj_shot)

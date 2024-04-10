@@ -5,8 +5,6 @@
 import Get_param
 
 from importlib import reload
-#from Utility import State_Naming, Gen_Rho, Gen_randM, state_measure, \
-#                    state_measure_save, state_measure_wID, state_S_coef, split_list, mp_state_measure
 
 from Utility import State_Naming
 from Utility import Params_define
@@ -353,7 +351,7 @@ def Default_OptMethod_params():
     # ----------------------------------------------------------------- #
 
     Call_MiFGD = 1      #  = 1: call the MiFGD optimization to calculate
-    Call_RGD = 0        #  = 1: call the RGD   optimization to calculate
+    Call_RGD = 1        #  = 1: call the RGD   optimization to calculate
 
     # -------------------------------------------------------------------------------- #
     #   (C-1) parameters for calling MiFGD optimization algorithm                      #
@@ -365,8 +363,8 @@ def Default_OptMethod_params():
     #     demonstrated by executing  MiFGD_optRun.py                                   #
     # -------------------------------------------------------------------------------- #
 
-    #InitX_MiFGD = 0;     #Ld_MiFGD = None
-    InitX_MiFGD = 1
+    #InitX_MiFGD = 0;     
+    InitX_MiFGD = 1       # 0: random start,  1: MiFGD specified init
 
     #muList = [3/4, 0.5, 1/3, 0.2, 0.25, 0.125]
     #Num_mu = 1     #  number of mu for running MiFGD
@@ -379,13 +377,6 @@ def Default_OptMethod_params():
     #muList = [0.75]
     muList = [4.5e-5]
     Num_mu = 1      #  number of mu for running MiFGD
-
-    #muList = [3/4, 4.5e-5]
-    #muList = [4.5e-5, 3/4]
-    #Num_mu = 2      #  number of mu for running MiFGD
-
-    #muList = [0.25]
-    #Num_mu = 1      #  number of mu for running MiFGD
 
     pm_MiFGD = [Call_MiFGD, InitX_MiFGD, muList, Num_mu]
 
@@ -424,14 +415,11 @@ def Default_OptMethod_params():
     return pm_MiFGD, pm_RGD
 
 def Default_Setting_Run_Tomography(params_setup, target_density_matrix,\
-                                input_S, T_rec, Ncpu_Pj):
-
-    pm_MiFGD, pm_RGD = Default_OptMethod_params()
+                                input_S, T_rec, Ncpu_Pj, pm_MiFGD, pm_RGD, List_alpha):
 
     T_Rho  = {}      #  record Ttot for each Rho
     Wk_Rho = {}      #  record Wk_dict for each Rho
 
-    StateName = params_setup['StateName']
     DirRho    = params_setup['DirRho']
 
     # --------------------------------------------- #
@@ -445,40 +433,41 @@ def Default_Setting_Run_Tomography(params_setup, target_density_matrix,\
     T_Rho[DirRho]  = Ttot
     Wk_Rho[DirRho] = Wk_dict
 
-    if StateName == 'KapRnd':
-        #List_Kappa = [10, 20, 30, 40]
-        #List_alpha = [0.25, 0.5, 1, 2, 3]
-        #List_Kappa = [20, 40, 60, 80]
-        #List_alpha = [0.5, 2, 4]
-        #List_Kappa = [80]
-        
-        #List_alpha = [4, 8, 10, 15, 20]
-        #List_alpha = [8, 10, 15, 20]
-        List_alpha = [4, 6, 8, 9, 10, 15, 20]   # paper use
-
-        T_Rho2, Wk_Rho2 = Tune_Kappa_Tomography(params_setup, target_density_matrix, \
-                    input_S, T_rec, List_alpha)
-
-        T_Rho.update(T_Rho2)
-        Wk_Rho.update(Wk_Rho2)
+    T_Rho2, Wk_Rho2 = Tune_Kappa_Tomography(params_setup, target_density_matrix, \
+            input_S, T_rec, Ncpu_Pj, List_alpha, pm_MiFGD, pm_RGD)
+    T_Rho.update(T_Rho2)
+    Wk_Rho.update(Wk_Rho2)
 
     return T_Rho, Wk_Rho
 
-def Tune_Kappa_Tomography(params_setup, target_density_matrix, input_S, T_rec, \
-                List_alpha):
+def Tune_Kappa_Tomography(params_setup, target_density_matrix, input_S, T_rec, Ncpu_Pj, \
+                List_alpha, pm_MiFGD, pm_RGD):
     """ (eg)        List_Kappa = [10, 20, 30]
                     List_alpha = [0.25, 0.5, 1, 2, 3]
+
     """
-    pm_MiFGD, pm_RGD = Default_OptMethod_params()
 
     T_Rho  = {}      #  record Ttot for each Rho
-    Wk_Rho = {}      #  record Wk_dict for each Rho
+    Wk_Rho = {}      #  record Wk_dict for each Rho                    
 
     Nr        = params_setup['Nr']
     StateName = params_setup['StateName']
     StVer     = params_setup['StVer']
+
+    if StateName != 'KapRnd':
+        print('  NOT "KapRnd" --> not tuning Kappa')
+        return T_Rho, Wk_Rho
     
-    if StateName == 'KapRnd':
+    elif StateName == 'KapRnd':
+
+        Data_In = params_setup['Data_In']
+
+        if len(Data_In) >0 and Data_In[0] != '':        # DirRho specified
+            raise TypeError(' The KapRnd not suitable for specifying DirRho in Data_In')
+        elif len(Data_In) > 2:                          # DirMease specified
+            raise TypeError(' The KapRnd not suitable for specifying DirMeas')
+            
+
         if StVer[1] == 1:            #  need to create New Rho
             u, s, vh = Decompose_Rho(target_density_matrix, Nr, params_setup)
             del target_density_matrix
@@ -488,6 +477,9 @@ def Tune_Kappa_Tomography(params_setup, target_density_matrix, input_S, T_rec, \
             if StVer[1] == 1:       #  create New Rho
                 NewRho, s_new, Kappa = Tune_Kappa(u, s, vh, Nr, alpha)
             elif StVer[1] == 0:     #  Rho already existed
+
+                #raise ValueError(' need to Generate Rho for New Kappa, i.e. need StVer[1] = 1')
+                
                 NewRho = []
                 s_new, Kappa = Gen_sNew_Power(alpha, Nr)
 
@@ -510,7 +502,7 @@ def Tune_Kappa_Tomography(params_setup, target_density_matrix, input_S, T_rec, \
 
     return T_Rho, Wk_Rho
 
-def Add_More_Kappa(params_setup, T_rec, List_alpha):
+def Add_More_Kappa(params_setup, T_rec, Ncpu_Pj, List_alpha, pm_MiFGD, pm_RGD):
     """ (eg)        List_Kappa = [40, 50]
                     List_alpha = [0.3, 1, 2]
     """
@@ -519,11 +511,18 @@ def Add_More_Kappa(params_setup, T_rec, List_alpha):
     Nk        = params_setup['n']
     Nr        = params_setup['Nr']
 
-    DirRho    = params_setup['DirRho']
+    #DirRho    = params_setup['DirRho']
+    Dir2m     = params_setup['Dir2m']
+    DirRho    = '{}/Kap0'.format(Dir2m)
+
     StVer     = params_setup['StVer']
-    
-    StVer[1] = 0
-    params_setup['StVer'] = StVer
+
+    #StVer[1] = 0
+    #params_setup['StVer'] = StVer
+    #StVerR0 = [StVer[0], 0]
+
+    if StVer[1] == 0:
+        raise ValueError(' Need to generate New Kappa, i.e. must StVer[1] = 1')
 
     T_rec['Ncpu_meas']    =  1   # same as  Get_measurement_by_labels
 
@@ -531,13 +530,13 @@ def Add_More_Kappa(params_setup, T_rec, List_alpha):
     input_S = None
 
     T_Rho, Wk_Rho = Tune_Kappa_Tomography(params_setup, target_density_matrix, \
-                    input_S, T_rec, List_alpha)
+                    input_S, T_rec, Ncpu_Pj, List_alpha, pm_MiFGD, pm_RGD)
 
     return T_Rho, Wk_Rho
 
 
 
-def Sample_Rnd_Tomography(params_setup, Samples, Num_Rho, T_rec, Ncpu_Pj):
+def Sample_Rnd_Tomography(params_setup, Samples, Num_Rho, T_rec, Ncpu_Pj, pm_MiFGD, pm_RGD, List_alpha):
     """  (eg)      Samples = 'sample4'
                   Num_Rho  = 3
 
@@ -564,148 +563,10 @@ def Sample_Rnd_Tomography(params_setup, Samples, Num_Rho, T_rec, Ncpu_Pj):
             Get_measurement_by_labels(params_setup, label_list, T_rec)
 
         T_Rho, Wk_Rho = Default_Setting_Run_Tomography(params_setup, \
-                    target_density_matrix, input_S, T_rec, Ncpu_Pj)
+                    target_density_matrix, input_S, T_rec, Ncpu_Pj, pm_MiFGD, pm_RGD, List_alpha)
 
     print(' ---------- Run samples of RND completed --------- \n\n')
     return params_setup
-
-
-def Default_MeasureState_parm(Obtain_Pj):
-    """  (eg)       Obtain_Pj = 2
-
-    """
-    # ----------------------------------------------------------------------------- #
-    #   (B) loading or generating sampled Pauli matrices & measurements             #
-    #          projectors = labels = Pauli matrices (obs = observables)             #
-    #          measurement: using qiskit shot measurement for pure states           #
-    #                         or  qutip direct exact calculation for mixed states   # 
-    #          Note the measurements for pure states & mixed states are different   #
-    #                       for the treatment now                                   #                                 
-    #                                                                               #
-    #   (B-1)  program control parameters for generating Proj/measurement           #
-    #                                                                               #
-    #       Pj_method  = 0  (each Pauli matrix is stored separately)                #
-    #                    1  (all Pauli matrices saved in chunks)                    #
-    #                        if: not too many --> saved in one Pj_List.pickle file  #
-    #                        else: will save in several chunks of Pj_list_xx.pickle #
-    #                                                                               #
-    #       mea_method = 0  (measurement for each Pauli obs is saved separately)    #
-    #                    1  (measurement result is stored in chunks)                #
-    #       measure_method  = 1   directly calculate the whole label_list           #
-    #                         3   parallel measurement for each label part          #
-    #                                                                               #
-    # ----------------------------------------------------------------------------- #
-
-    Pj_method = 1               #   the method to save | load  projectors
-    mea_method = 1              #   the method to save | load  measurement_dict (count_dict) 
-
-    measure_method = 3          #  = 1: direct label_list,  = 3: parallel cpu
-
-    # ------------------------------------------------------------------------------ #
-    #   (B-2) version control:  loading or creating data                             #
-    #                              of  sampled Pauli matrices & measurement          #
-    #                                                                                #
-    #       Data_In =  []                 defult                                     #
-    #                  [DirRho, Dir_proj] if specified (only for testing)            #
-    #                                                                                #
-    #    version[0] =  version of sampled Projectors                                 #
-    #           [1] =  version of measurement                                        # 
-    #           [2] =  specification of Noise                                        #
-    #       --> each version will have separate directory                            #
-    #             if loading Proj/measurement  --> will check if directory exists    #
-    #             if generating new Pj/measure --> will create new directory         #   
-    #                                                                                #
-    #    New_Pj_shot[0] = 0  loading sampled projectors                              #
-    #                     1  creating new sampled projectors                         #
-    #                          if the version already exists                         #
-    #                          then the version New_Pj_shot[0] will +1 automatically #
-    #                     2  combining each Pj_list_xx.pickle into single file first #
-    #                                                                                #
-    #    New_Pj_shot[1] = 0  loading measurement result from file                    #
-    #                     1  doing measurement (qiskit shot or qutip calculation)    #
-    #                          if the version already exists                         #
-    #                          then the version New_Pj_shot[1] will +1 automatically #
-    #                     2  converting shot measured data_dict into the coef needed #
-    #                       i.e. get measurement_list = the coef of each Pauli obs   #
-    #    (default usage)                                                             #
-    #       New_Pj_shot = [1, 1]  = creating new Projector & measurement             #
-    #       -->  Caveat:   Now only this works for call cases                        #
-    #                   other choice of New_Pj_shot may not work                     #    
-    #                       (eg) New_Pj_shot = [1, 2] for StateName = 'KapRnd'       #
-    # ------------------------------------------------------------------------------ #
-    
-    if Obtain_Pj == 1:      #  direct read in data for tomography
-
-        #StateName = 'GHZ';  Nk = 3; Nr = 1; m = 10; Noise = -1
-        #DirRho   = '../Tomography/calc/GHZ-3/GHZ-3_m10_s7'
-        #Dir_proj = '../Tomography/calc/GHZ-3/GHZ-3_m10_s7/GHZ-3_m10_s7_Proj'
-
-        #StateName = 'rand';  Nk = 3; Nr = 3; m = 10; Noise = 0
-        #DirRho    = '../Tomography/calc/rand-3-r3/R14/rand-3-r3_m10_s1'
-        #Dir_proj  = '../Tomography/calc/rand-3-r3/R14/rand-3-r3_m10_s1/rand-3-r3_m10_s1_Proj'
-        #Dir_proj  = '../Tomography/calc/rand-3-r3/rand-3-r3_m10_s1_Proj'
-        #Dir_proj  = '../Tomography/calc/rand-3-r3/Pj_s2'
-
-        StateName = 'KapRnd';  Nk = 3; Nr = 3; m = 10; Noise = 0
-        #DirRho    = '../Tomography/calc/KapRnd-3-r3/R28/Kap0'
-        #Dir_proj  = '../Tomography/calc/KapRnd-3-r3/Proj_m10_s27/'
-        #DirRho   = '../Tomography/calc/KapRnd-3-r3/R53/Kap0'
-        #Dir_proj = '../Tomography/calc/KapRnd-3-r3/Proj_m10_s53/'
-        #DirRho   = '../Tomography/data/KapRnd-8-r3/R1/Kap0'
-        #Dir_proj = '../Tomography/data/KapRnd-8-r3/Proj_m13107_s1'
-
-        #DirRho   = '../Tomography/data/KapRnd-8-r3/R2/Kap0'
-        #Dir_proj = '../Tomography/data/KapRnd-8-r3/Proj_m19660_s1'
-
-        DirRho   = '../Tomography/data/KapRnd-3-r3/R6/Kap0'
-        Dir_proj = '../Tomography/data/KapRnd-3-r3/Proj_m10_s6'
-
-        Data_In     = [DirRho, Dir_proj]
-        New_Pj_shot = [0, 1]  #  [New Proj?, New shot?]  | [0,0] loading | 
-
-    elif Obtain_Pj == 2:        #  only load Dir_proj
-
-        #Dir_proj  = '../Tomography/calc/rand-3-r3/Pj_s1'
-        #Dir_proj  = '../Tomography/calc/rand-8-r3/rand-8-r3_m13107_s1_Proj'
-        #Dir_proj  = '../Tomography/calc/rand-10-r3/rand-10-r3_m209715_s1_Proj'
-        #Dir_proj  = '../Tomography/calc/rand-12-r3/rand-12-r3_m838860_s1_Proj'
-
-        #Dir_proj  = '../Tomography/data/rand-6-r3/rand-6-r3_m1228_s1_Proj'
-        Dir_proj  = '../Tomography/data/rand-8-r3/rand-8-r3_m13107_s1_Proj'
-        #Dir_proj  = '../Tomography/data/rand-8-r3/rand-8-r3_m19660_s1_Proj'
-        #Dir_proj  = '../Tomography/data/rand-10-r3/rand-10-r3_m209715_s1_Proj'
-        #Dir_proj  = '../Tomography/data/rand-12-r3/rand-12-r3_m838860_s1_Proj'
-
-        Data_In     = ['', Dir_proj]
-        #New_Pj_shot = [0, 1]  #  [New Proj?, New shot?]  | [0,0] loading | 
-        New_Pj_shot = [0, 0]  #  [New Proj?, New shot?]  | [0,0] loading | 
-
-    elif Obtain_Pj == -1:     #  the label_list from single|two sites, instead of sampling
-        Data_In = []
-
-        New_Pj_shot = [1, 1]  #  still need to produce new label_list  
-
-    elif Obtain_Pj == -2:
-        Data_In = []
-        New_Pj_shot = [0, 0]  #  [New Proj?, New shot?]  | [0,0] loading | 
-
-    elif Obtain_Pj == 0:
-        Data_In = []
-
-        New_Pj_shot = [1, 1]  #  [New Proj?, New shot?]  | [0,0] loading | 
-        #New_Pj_shot = [0, 1]  #  [New Proj?, New shot?]  | [0,0] loading | 
-        #New_Pj_shot = [2, 1]  #  [New Proj?, New shot?]  | [0,0] loading | 
-        #New_Pj_shot = [2, 0]  #  [New Proj?, New shot?]  | [0,0] loading | 
-        #New_Pj_shot = [0, 2]  #  [New Proj?, New shot?]  | [0,0] loading | 
-
-    # ------------------------------------- #
-    #    define controlling parameters      #     
-    # ------------------------------------- #
-    params_control = {'New_Pj_shot':  New_Pj_shot, 
-                      'Pj_method':  Pj_method,
-                      'mea_method': mea_method
-                      }
-    return Pj_method, mea_method, measure_method, New_Pj_shot, Data_In
 
 
 if __name__ == "__main__":
@@ -740,7 +601,9 @@ if __name__ == "__main__":
     #  i.e.  StVer  =  [version R?, New or Generate]   for (random) State               #
     # --------------------------------------------------------------------------------- #
 
-    Choose = 45
+    #exec(open('parm_yaml.py').read())
+
+    Choose = 1
     Nk, m, mea = basic_sys_setting(Choose)
 
     # ---------------------------------------------------------- #
@@ -750,24 +613,66 @@ if __name__ == "__main__":
     #             for  projectors  &  measurement                # 
     # ---------------------------------------------------------- #
 
-    #StateName = 'KapRnd'; Nr = 3;  Noise = 0;    StVer = [1, 1]
+    StateName = 'KapRnd'; Nr = 3;  Noise = 0;    StVer = [1, 1]
     #StateName = 'KapRnd';  Nr = 3;  Noise = 0;   StVer = [1, 0]    # load existing Rho
 
     #StateName = 'rand';   Nr = 3;  Noise = 0;    StVer = [1, 1]   # create new Rho
-    StateName = 'rand';   Nr = 3;  Noise = 0;    StVer = [1, 0]   # load existing Rho
+    #StateName = 'rand';   Nr = 3;  Noise = 0;    StVer = [1, 0]   # load existing Rho
 
-    #StateName = 'Had';    Nr = 1;  Noise = -1;   StVer = 0      
-    #StateName = 'quGH';    Nr = 1;  Noise = 0;   StVer = 0      
+    #StateName = 'GHZ';    Nr = 1;  Noise = -1;   StVer = 0      
     #StateName = 'quWst';    Nr = 1;  Noise = 0;   StVer = 0      
 
-    #Obtain_Pj = 0      #  0: whole new; 1: read Dir_In;  2: read Dir_Proj
-    Obtain_Pj = -2      #  0: whole new; 1: read Dir_In;  2: read Dir_Proj
-    #Obtain_Pj = 2      #  0: whole new; 1: read Dir_In;  2: read Dir_Proj
+    # --------------------------------- #
+    #   some default parameters         #
+    # --------------------------------- #
 
-    Pj_method, mea_method, measure_method, New_Pj_shot, Data_In = \
-                Default_MeasureState_parm(Obtain_Pj)
+    Pj_method = 1               #   the method to save | load  projectors
+    mea_method = 1              #   the method to save | load  measurement_dict (count_dict) 
 
-    version = [1, 1, Noise]   # [Proj version, measurement version, Noise]
+    measure_method = 3          #  = 1: direct label_list,  = 3: parallel cpu
+
+    # ----------------------------------------------------- #
+    #   version parameter for  Projectors & measurement     #
+    #                          DirStore to store data       #
+    # ----------------------------------------------------- #
+
+    #DirStore = '../Tomography/calc'
+    DirStore = '../Tomography/DataTest'
+
+
+    version_choice = 1
+    if version_choice == 1:     #  creating the whole new data set
+        Data_In   = []
+
+        New_Pj_shot = [-1, 1]  #  [New Proj?, New shot?]  | [0,0] loading | 
+
+    elif version_choice == 2:   # Specify Dir of [Rho, Proj, Measure] 
+
+        DirRho   = ''
+        #Dir_proj = '{}/rand-3-r3/R1/rand-3-r3_m10_s1/rand-3-r3_m10_s1_Proj'.format(DirStore)
+        #Dir_meas = '{}/rand-3-r3/R1/rand-3-r3_m10_s1/rand-3-r3_m10_s1_zN0_v1_measurements'.format(DirStore)
+
+        Dir_proj = '{}/KapRnd-3-r3/Proj_m10_s1'.format(DirStore)
+        Dir_meas = '{}/KapRnd-3-r3/R1/Kap0/Pm10_s1_zExact_v1'.format(DirStore)
+
+        #Data_In   = ['', Dir_proj, Dir_meas]
+        Data_In   = ['', Dir_proj]
+
+        New_Pj_shot = [0, 0]  #  [New Proj?, New shot?]  | [0,0] loading | 
+
+    elif version_choice == 3:   # Specify Dir of [Rho, Proj, Measure] 
+
+        DirRho   = '{}/rand-3-r3/R1'.format(DirStore)
+        Dir_proj = '{}/rand-3-r3/R1/rand-3-r3_m10_s1/rand-3-r3_m10_s1_Proj'.format(DirStore)
+        Dir_meas = '{}/rand-3-r3/R1/rand-3-r3_m10_s1/rand-3-r3_m10_s1_zN0_v1_measurements'.format(DirStore)
+
+        #Data_In   = [DirRho, Dir_proj, Dir_meas]
+        Data_In   = [DirRho, Dir_proj]
+
+        New_Pj_shot = [0, 1]  #  [New Proj?, New shot?]  | [0,0] loading | 
+
+
+    version = [1, 2, Noise]   # [Proj version, measurement version, Noise]
 
 
     # ---------------------------------------------------------- #
@@ -775,15 +680,15 @@ if __name__ == "__main__":
     #                   for tomography                           # 
     #   (D-0) generate the Naming of the directory to store      #
     #       according to the state & version defined in (A) (B)  # 
-    # ---------------------------------------------------------- #
+    # ---------------------------------------------------------- #    
 
     params_setup = Params_define(Nk, StateName, m, mea, Nr, \
-                Pj_method, mea_method, measure_method, Obtain_Pj) 
+                Pj_method, mea_method, measure_method, DirStore) 
 
     params_setup = State_Naming(StVer, version, \
                         params_setup, New_Pj_shot, Data_In)
-    #del Nk, m, mea, Nr, Pj_method, mea_method, measure_method
-    del StVer, version, New_Pj_shot, Data_In
+    del Nk, m, mea, Nr, Pj_method, mea_method, measure_method
+    #del StVer, version, New_Pj_shot, Data_In
 
     # ------------------------------------------------- #
     #   (D-1) generate the projectors = Pauli matrices  #
@@ -806,34 +711,44 @@ if __name__ == "__main__":
     #             some default parameters needed by MiFGD/RGD respectively  #
     # --------------------------------------------------------------------- #
 
-    if Obtain_Pj == 0 or Obtain_Pj == -1 or Obtain_Pj == -2: # usually run this
+    pm_MiFGD, pm_RGD = Default_OptMethod_params()
+    List_alpha = [5, 7, 10]     #  only for 'KapRnd' --> to tune Kappa
 
-        #target_density_matrix, input_S, T_rec, Ncpu_meas, s_label, yProj = \
+    Run_meas_Tomography = 1
+    if Run_meas_Tomography == 1:      # do measurement & run tomography
+
         target_density_matrix, input_S, T_rec, Ncpu_meas = \
-            Get_measurement_by_labels(params_setup, label_list, T_rec)
+            Get_measurement_by_labels(params_setup, label_list, T_rec) 
 
         T_Rho, Wk_Rho = Default_Setting_Run_Tomography(params_setup, \
-                        target_density_matrix, input_S, T_rec, Ncpu_Pj)
+                        target_density_matrix, input_S, T_rec, Ncpu_Pj, \
+                        pm_MiFGD, pm_RGD, List_alpha)
 
-    elif Obtain_Pj == 1:    #  continue from existing Rho
+
+
+    # ----------------------------------------- #
+    #   special cases:  run more cases          #
+    #   [default]    Special_Usage = 0          #
+    # ----------------------------------------- #
+
+    Special_Usage = 2
+
+    if Special_Usage == 1:    #  adding more Kappa cases  (only for KapRnd)
 
         if StateName == 'KapRnd':   # continue generate more Kappa
-            #List_Kappa = [100]
-            #List_alpha = [0.25, 0.5, 1, 2, 3]
-            #List_Kappa = [80]
 
-            List_alpha = [8, 14]
+            List_alpha = [11, 12]
 
-            T_Rho, Wk_Rho = Add_More_Kappa(params_setup, T_rec, List_alpha)
+            T_Rho, Wk_Rho = Add_More_Kappa(params_setup, T_rec, Ncpu_Pj, List_alpha, pm_MiFGD, pm_RGD)
 
 
-    elif Obtain_Pj == 2:    # having more samples (only for 'rand')
+    elif Special_Usage == 2:    # having more samples (only for 'rand')
 
         Samples = 'sample1'
         Num_Rho  = 5
 
-        params_setup = \
-            Sample_Rnd_Tomography(params_setup, Samples, Num_Rho, T_rec, Ncpu_Pj)
+        params_setup = Sample_Rnd_Tomography(params_setup, Samples, \
+                        Num_Rho, T_rec, Ncpu_Pj, pm_MiFGD, pm_RGD, List_alpha)
 
 
     print(' ******   Happy Ending   *****')

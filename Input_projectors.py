@@ -6,11 +6,7 @@ import sys
 sys.path.append('./quQST')
 import projectors
 
-from importlib import reload
-reload(projectors)
-
 import Get_param
-reload(Get_param)
 
 from Gen_localPauli import Gen_Site_2s_Pauli
 
@@ -70,15 +66,12 @@ def combine_proj_SaveInOne(proj_path, If_Return=0):
         return bulk_Pj, label_sorted, Pj_combine, num_cpus
 
 def Get_label_list_by_Projector(params_setup, New_Pj_shot):
-#def Get_label_list_by_Projector(Nk, m, New_Pj_shot, proj_path, Pj_method):
 
     Nk         = params_setup['n']
     m          = params_setup['num_labels']
     proj_path  = params_setup['projector_store_path']
     Pj_method  = params_setup['Pj_method']
-    #StateName  = params_setup['StateName']
-
-    Obtain_Pj  = params_setup['Obtain_Pj']
+    #Obtain_Pj  = params_setup['Obtain_Pj']
 
     # ------------------------------------------------------------------ #
     #           projectors  ==> generate / loading  label_list           #
@@ -89,25 +82,33 @@ def Get_label_list_by_Projector(params_setup, New_Pj_shot):
     saveP_bulk   = 0              #  the default saved bulk of Pj_list is 0
     Partition_Pj = 0              #  default:  no partition in Projectors
 
-    if New_Pj_shot[0] == 1:     #  generate new projectors
+    if New_Pj_shot[0] == -1:      #  from specification of Pauli list
+        tp0 = time.time()
+
+        print(' -------  Generate labels from single & nearest sites    ------------')
+
+        ALL_sitePauli, ALL_2sPauli, symb_P9, numB2s = Gen_Site_2s_Pauli(Nk)
+        label_list = ALL_sitePauli + ALL_2sPauli
+        print(' len(label_list) = {}'.format(len(label_list)))
+
+        print('  symb_P9       = {}'.format(symb_P9))
+        print('  ALL_sitePauli = {}'.format(ALL_sitePauli))
+        print('  ALL_2sPauli   = {}'.format(ALL_2sPauli))
+        print("     numB2s     = {}".format(numB2s))
+
+        # --------------------------------- #
+        #   generate & store projectors     #
+        # --------------------------------- #
+        num_cpus, saveP_bulk, Partition_Pj = Get_param.Do_projector(label_list, proj_path, Pj_method)
+
+
+    elif New_Pj_shot[0] == 1:       #  generate new projectors
         tp0 = time.time()
 
         print(' -------------     Generate new labels    ------------')
         
-        if Obtain_Pj == -1:     #   from specification of Pauli list
-
-            ALL_sitePauli, ALL_2sPauli, symb_P9, numB2s = Gen_Site_2s_Pauli(Nk)
-            label_list = ALL_sitePauli + ALL_2sPauli
-            print(' len(label_list) = {}'.format(len(label_list)))
-
-            print('  symb_P9       = {}'.format(symb_P9))
-            print('  ALL_sitePauli = {}'.format(ALL_sitePauli))
-            print('  ALL_2sPauli   = {}'.format(ALL_2sPauli))
-            print("     numB2s     = {}".format(numB2s))
-
-        else:                   #   from random sampling of Pauli list
-            label_list = projectors.generate_random_label_list(m, Nk)
-        #print(np.array(label_list))
+        #  -----  from random sampling of Pauli list  ----------- #
+        label_list = projectors.generate_random_label_list(m, Nk)
 
         # --------------------------------- #
         #   generate & store projectors     #
@@ -159,7 +160,4 @@ def Get_label_list_by_Projector(params_setup, New_Pj_shot):
     T_rec['proj'] = tp1 - tp0
 
     return label_list, T_rec, num_cpus, saveP_bulk, Partition_Pj
-
-
-
 

@@ -4,7 +4,6 @@ import sys
 sys.path.append('./quQST')
 import measurements
 import projectors
-from methodsRGD import Amea
 
 import numpy as np
 import os
@@ -15,16 +14,9 @@ import Get_param
 
 from Utility import Gen_Rho, Gen_randM, state_measure, state_measure_save, state_S_coef, split_list
 from Utility import Gen_Wst
-#from Utility import State_Naming, Gen_Rho, Gen_randM, state_measure, \
-#                    state_measure_save, state_measure_wID, state_S_coef, split_list, mp_state_measure
-
-
-from importlib import reload
-reload(measurements)
 
 
 def create_measurement_bash(Nk, mea, StateName, meas_path, ml_lab_files, Fname):
-        #print('  Fname = {}'.format(Fname))
 
         os.system('rm {}'.format(Fname))
 
@@ -208,11 +200,6 @@ def combine_data_dict_Calc_Mlist(num_split, meas_path, Run_method=2):
         #print('  measurement_sort    = {}'.format(measurement_sort))
 
 
-
-    #print('  measurement_outALL  = {}'.format(measurement_outALL))
-    #print('  measurement_outALL[0] = {}'.format(measurement_outALL[0]))
-    #print('  measurement_outALL[1] = {}'.format(measurement_outALL[1]))
-
     return measurement_outALL
 
 def split_label_4_measure(label_list):
@@ -227,7 +214,6 @@ def split_label_4_measure(label_list):
     print(' num_cpus = {},  labels size ={}'.format(num_cpus, len(label_list)))
 
     label_part = split_list(label_list, num_cpus)
-    #print('  label_part = {}'.format(label_part))
 
     return num_cpus, label_part
 
@@ -244,8 +230,6 @@ def parallel_calc_measure_dict(Nk, m, mea, StateName, label_list, meas_path):
 
     for ii, labs in enumerate(label_part):
         lab_file = '{}/ml_labels_{}'.format(meas_path, ii)
-        #print(' ------------------------------------- ')
-        #print(' ii = {}, labs = {}, lab_file ={}'.format(ii, labs, lab_file))
 
         with open(lab_file, 'wb') as f:
             pickle.dump(labs, f)
@@ -288,8 +272,8 @@ def compare_direct_and_exact(Nk, m, mea, StateName, label_list, mea_method, Pj_m
 
     projector_list = [projector_dict_list[label] for label in sorted(label_list)]
 
-    ym = Amea(projector_list, target_density_matrix, m, 2**Nk) * np.sqrt(m/2**Nk)
-    print(' ym = {}'.format(ym))
+    #ym = Amea(projector_list, target_density_matrix, m, 2**Nk) * np.sqrt(m/2**Nk)
+    #print(' ym = {}'.format(ym))
 
 def Pure_state_measure(params_setup, label_list, measure_method=3):
 
@@ -297,11 +281,6 @@ def Pure_state_measure(params_setup, label_list, measure_method=3):
     m          = params_setup['num_labels']
     mea        = params_setup['num_shots']
     StateName  = params_setup['StateName']
-    #Dir        = params_setup['Dir']
-    #Dir0       = params_setup['Dir0']
-    #Nr         = params_setup['Nr']
-    #proj_path  = params_setup['projector_store_path']
-    #Pj_method  = params_setup['Pj_method']
 
     meas_path  = params_setup['measurement_store_path']
 
@@ -338,8 +317,6 @@ def Pure_state_measure(params_setup, label_list, measure_method=3):
         t_parallel = tt2 - tt1
         num_cpus   = 1
 
-    #elif measure_method == 2:   #   use parallel CPU  (not OK since subprocess call multiprocessing)
-    #    measurement_dict2, data_dict_list2, backend = mp_state_measure(params_setup, label_list)
 
     elif measure_method == 3:          #  each CPU save result
 
@@ -372,9 +349,9 @@ def Get_measurement_by_labels(params_setup, label_list, T_rec):
     #Dir0       = params_setup['Dir0']
     #Dir        = params_setup['Dir']
     DirRho     = params_setup['DirRho']
-    proj_path  = params_setup['projector_store_path']
+    #proj_path  = params_setup['projector_store_path']
     meas_path  = params_setup['measurement_store_path']
-    Pj_method  = params_setup['Pj_method']
+    #Pj_method  = params_setup['Pj_method']
     mea_method = params_setup['mea_method']
 
     New_Pj_shot    = params_setup['New_Pj_shot']
@@ -397,7 +374,6 @@ def Get_measurement_by_labels(params_setup, label_list, T_rec):
             
             num_cpus = 1
 
-        #else:           # only for pure states
         elif StateName == 'GHZ' or StateName == 'Had':
             t_parallel, num_cpus = Pure_state_measure(params_setup, label_list, measure_method)
             T_rec['parallel_measure'] = t_parallel
@@ -459,7 +435,6 @@ def Get_measurement_by_labels(params_setup, label_list, T_rec):
                 elif measure_method == 3:
                     measurement_output = measurements.MeasurementStore.Load_measurement_list(meas_path, 'ALL')
 
-                #print('measurement_output         = {}'.format(measurement_output))    
                 print('len(measurement_output)    = {}'.format(len(measurement_output)))    
                 print('len(measurement_output[0]) = {}'.format(len(measurement_output[0])))    
                 print('len(measurement_output[1]) = {}'.format(len(measurement_output[1])))    
@@ -481,9 +456,6 @@ def Get_measurement_by_labels(params_setup, label_list, T_rec):
 
         print(' to load qiskit measurement data from {}'.format(Fname))
         with open(Fname, 'rb') as f:
-            #In_Nk, In_m, In_shot, input_S, measurement_dict, data_list, s_label, params_qiskit, \
-            #In_Nk, In_m, In_shot, input_S, measurement_dict, data_dict_list, s_label, params_qiskit, \
-            #target_density_matrix, rho = pickle.load(f)
             measurement_dict, data_dict_list, s_label, params_setup, backend, \
             target_density_matrix, input_S, rho = pickle.load(f)
 
@@ -492,10 +464,6 @@ def Get_measurement_by_labels(params_setup, label_list, T_rec):
     print('\n  <<<<<<<<               Do_measure time             = {}           >>>>>>\n'.format(dt))
     T_rec['measurement'] =  dt
     T_rec['Ncpu_meas']   = num_cpus
-
-    #print(" sys.argv content = {}".format(sys.argv))
-    #print('     argv length  = {}'.format(len(sys.argv)))
-    #print("      sys.argv[0] = {}".format(sys.argv[0]))
 
     if StateName != 'rand':
         try:
@@ -507,4 +475,3 @@ def Get_measurement_by_labels(params_setup, label_list, T_rec):
 
 
     return target_density_matrix, input_S, T_rec, num_cpus
-    #return target_density_matrix, input_S, T_rec, num_cpus, s_label, yProj
