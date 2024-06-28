@@ -613,13 +613,13 @@ if __name__ == "__main__":
     #             for  projectors  &  measurement                # 
     # ---------------------------------------------------------- #
 
-    StateName = 'KapRnd'; Nr = 3;  Noise = 0;    StVer = [1, 1]
+    #StateName = 'KapRnd'; Nr = 3;  Noise = 0;    StVer = [1, 1]
     #StateName = 'KapRnd';  Nr = 3;  Noise = 0;   StVer = [1, 0]    # load existing Rho
 
     #StateName = 'rand';   Nr = 3;  Noise = 0;    StVer = [1, 1]   # create new Rho
     #StateName = 'rand';   Nr = 3;  Noise = 0;    StVer = [1, 0]   # load existing Rho
 
-    #StateName = 'GHZ';    Nr = 1;  Noise = -1;   StVer = 0      
+    StateName = 'GHZ';    Nr = 1;  Noise = -1;   StVer = 0      
     #StateName = 'quWst';    Nr = 1;  Noise = 0;   StVer = 0      
 
     # --------------------------------- #
