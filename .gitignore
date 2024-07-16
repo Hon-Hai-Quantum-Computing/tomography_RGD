@@ -3,6 +3,8 @@ old/*.py
 quQST/old/*.py
 Load_workers.py
 *.txt
+test_*.py
+quQST/states_qiskit_v013.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

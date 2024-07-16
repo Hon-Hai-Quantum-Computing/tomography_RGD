@@ -6,7 +6,7 @@ import numpy as np
 
 
 import qiskit
-from qiskit.tools import outer
+#from qiskit.tools import outer
 
 #import methods
 #import measurements
