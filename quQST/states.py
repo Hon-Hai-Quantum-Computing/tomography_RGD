@@ -7,6 +7,8 @@ import numpy as np
 
 import qiskit
 #from qiskit.tools import outer
+from qiskit.quantum_info import Statevector
+from qiskit.providers.basic_provider import BasicSimulator
 
 #import methods
 #import measurements
@@ -15,14 +17,15 @@ import qiskit
 
 class State:
     def __init__(self, n):
-        '''
-        Initializes State class
+        """Initializes State class
         - n: number of qubits
         - quantum register: object to hold quantum information
         - classical register: object to hold classical information
         - circuit_name: circuit name; defined in each subclass (GHZState, HadamardState, RandomState)
-        '''
 
+        Args:
+            n (int): number of qubits
+        """
         #def A(S, rho):
         #    # S random set
         #    # rho density op
@@ -52,34 +55,48 @@ class State:
 
     
     def get_state_vector(self):
-        '''
-        Executes circuit by connecting to Qiskit object, and obtain state vector
-        '''
+        """Executes circuit by connecting to Qiskit object, and obtain state vector
+
+        Returns:
+            (class Statevector): an ndarray specifying the state vector after the circuit has been created
+        """
         if self.circuit is None:
             self.create_circuit()
         
         # XXX add probe?
-        backend_engine = qiskit.Aer.get_backend('statevector_simulator')
-        job     = qiskit.execute(self.circuit, backend_engine)
-        result  = job.result()
-        state_vector = result.get_statevector(self.circuit_name)
+        # ****** for old qiskit 0.x version, e.g. 0.13.0  ******
+        #backend_engine = qiskit.Aer.get_backend('statevector_simulator')
+        #job     = qiskit.execute(self.circuit, backend_engine)
+        #result  = job.result()
+        #state_vector = result.get_statevector(self.circuit_name)
+
+        # *****  usage of new qiskit 1.x version  *****
+        state_vector = Statevector(self.circuit)
+
         return state_vector        
 
     
     def get_state_matrix(self):
-        '''
-        Obtain density matrix by taking an outer product of state vector
-        '''
+        """Obtain density matrix by taking an outer product of state vector
+
+        Returns:
+            (ndarray of complex128): the target denstiy matrix
+        """
         state_vector = self.get_state_vector()
-        state_matrix = outer(state_vector)
+        #state_matrix = outer(state_vector)         # deprecated in qiskit 1.x
+
+        state_conj = np.array(state_vector).conj()
+        state_matrix = np.outer(state_vector, state_conj)
         return state_matrix
     
     
     def create_measurement_circuits(self, labels, label_format='big_endian'):
-        '''
-        Prepares measurement circuits
-        - labels: string of Pauli matrices (e.g. XYZXX)
-        '''
+        """Prepares measurement circuits
+
+        Args:
+            labels (list of str): each element is a string of Pauli matrices (e.g. XYZXX) 
+            label_format (str, optional): Specify the ordering of qubits. Defaults to 'big_endian'.
+        """
         
         if self.circuit is None:
             self.create_circuit()
@@ -100,14 +117,19 @@ class State:
             for qubit, letter in zip(*[qubits, effective_label]): 
                 probe_circuit.barrier(self.quantum_register[qubit])
                 if letter == 'X':
-                    probe_circuit.u2(0.,       np.pi, self.quantum_register[qubit])  # H
+                    #probe_circuit.u2(0.,       np.pi, self.quantum_register[qubit])     # H (qiskit 0.x)
+                    probe_circuit.u(0.5*np.pi, 0., np.pi, self.quantum_register[qubit])  # H (qiskit 1.x)
+
                 elif letter == 'Y':
-                    probe_circuit.u2(0., 0.5 * np.pi, self.quantum_register[qubit])  # H.S^*
+                    #probe_circuit.u2(0., 0.5 * np.pi, self.quantum_register[qubit])           # H.S^* (qiskit 0.x)
+                    probe_circuit.u(0.5*np.pi, 0., 0.5 * np.pi, self.quantum_register[qubit])  # H.S^* (qiskit 1.x)
+
                 probe_circuit.measure(self.quantum_register[qubit], 
                                       self.classical_register[qubit])
                 
             measurement_circuit_name = self.make_measurement_circuit_name(self.circuit_name, label)    
-            measurement_circuit      = self.circuit + probe_circuit
+            #measurement_circuit      = self.circuit + probe_circuit             #  qiskit 0.x
+            measurement_circuit      = self.circuit.compose(probe_circuit)       #  qiskit 1.x
             
             self.measurement_circuit_names.append(measurement_circuit_name)
             self.measurement_circuits.append(measurement_circuit)
@@ -115,34 +137,51 @@ class State:
 
     @staticmethod    
     def make_measurement_circuit_name(circuit_name, label):
-        '''
-        Measurement circuit naming convention
-        '''
+        """Measurement circuit naming convention
+
+        Args:
+            circuit_name (str): name of the circuit, usually the state name
+            label (str): the Pauli string referring to the measurement
+
+        Returns:
+            (str): name of measurement circuit
+        """
         name = '%s-%s' % (circuit_name, label)
         return name
 
     
-    def execute_measurement_circuits(self, labels,
-                                     backend   = 'qasm_simulator',
+    def execute_measurement_circuits(self, labels:list[str],
+                                     backend   = BasicSimulator(),
                                      num_shots = 100,
                                      label_format='big_endian'):
-        '''
-        Executes measurement circuits
-        - labels: string of Pauli matrices (e.g. XYZXX)
-        - backend: qasm simulator or real quantum device
-        - num_shots: number of shots measurement is taken to get empirical frequency through counts
-        '''
+        """Executes measurement circuits
+
+        Args:
+            labels (list[str]):list of labels where each label is a string of Pauli matrices (e.g. XYZXX) 
+            backend (class BasicSimulator, optional): a class defining a quantum simulator or a real device 
+                            Defaults to BasicSimulator().
+            num_shots (int, optional): number of shots measurement is taken to get empirical frequency through counts
+                        Defaults to 100.
+            label_format (str, optional): _description_. Defaults to 'big_endian'.
+
+        Returns:
+            (list): each elment is a dictionary storing all information of each Pauli meausrement 
+        """
         if self.measurement_circuit_names == []:
             self.create_measurement_circuits(labels, label_format)
         
         circuit_names = self.measurement_circuit_names
 
-        backend_engine = qiskit.Aer.get_backend(backend)
+        #  ****  usage of old qiskit 0.x  version  ****
+        #backend   = 'qasm_simulator'
+        #backend_engine = qiskit.Aer.get_backend(backend)
+        #job = qiskit.execute(self.measurement_circuits, backend_engine, shots=num_shots)
 
-        
-        job = qiskit.execute(self.measurement_circuits, backend_engine, shots=num_shots)
+        #  **** usage of qiskit 1.x version ******
+        job = backend.run(self.measurement_circuits, shots=num_shots)
+
         result = job.result()
-        
+
         data_dict_list = []
         for i, label in enumerate(labels):
             measurement_circuit_name = self.make_measurement_circuit_name(self.circuit_name, label)
@@ -157,9 +196,11 @@ class State:
 
 
 class GHZState(State):
-    '''
-    Constructor for GHZState class
-    '''
+    """Constructor for GHZState class
+
+    Args:
+        State (class State): the constructed circuit
+    """
     def __init__(self, n):
         State.__init__(self, n)
         self.circuit_name = 'GHZ'

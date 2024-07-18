@@ -9,6 +9,8 @@ import pickle
 import sys
 import warnings
 
+from qiskit.providers.basic_provider import BasicSimulator
+
 warnings.filterwarnings("ignore")
 
 sys.path.append('./quQST')
@@ -861,6 +863,17 @@ def state_measure_wID_wrapper(args):
 
 
 def state_measure_wID(ID, params_mp, labels):
+    """end to end measurement from specifying (state name, qubit size) to the measurement
+        with final output wrapping the result from state_measure
+
+    Args:
+        ID (int): index for parallel computating each state_measure
+        params_mp (dict): dictionary specifying system info (state name, qubit size, number of shots) 
+        labels (list): list of labels where each label is a string of Pauli matrices (e.g. XYZXX)  
+
+    Returns:
+        [int, dict, list, class BasicSimulator]: a list wrapping the ID with measurement results
+    """
     Nk         = params_mp['n']
     StateName  = params_mp['StateName']
     num_shots  = params_mp['num_shots']
@@ -872,18 +885,24 @@ def state_measure_wID(ID, params_mp, labels):
     return [ID, measurement_dict, data_dict_list, backend]
 
 
-def state_measure(num_shots, labels, state):
-    """  (input)
-            version to record which version we are recording
-         (eg)
-                num_qubits = 3
-                num_labels = 50
-                num_shots = 100
+def state_measure(num_shots:int, labels, state):
+    """run the shot measurement and record the results
+
+    Args:
+        num_shots (int): number of shots for each measurement (eg = 2400)
+        labels (list): list of labels where each label is a string of Pauli matrices (e.g. XYZXX)  
+        state (class State): specific state generated from the circuit 
+
+    Returns:
+        (dict): record shot results for each measured Pauli string as the dictionary key 
+        (list): each elment is a dictionary storing all information of each Pauli meausrement 
+        (class BasicSimulator): qiskit implementation of a basic (non-efficient) quantum simulator
     """
 
     print('      *****  start state_measure for #labels={}\n'.format(len(labels)))
 
-    backend    = 'qasm_simulator'                  ## Circuits ##
+    #backend    = 'qasm_simulator'         # for qiskit 0.x
+    backend    = BasicSimulator()         # for qiskit 1.x
 
     ## Measurements ##
     ##
