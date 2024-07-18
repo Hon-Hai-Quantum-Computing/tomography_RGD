@@ -63,7 +63,7 @@ The default value of Dir0 is ./calc.
          - using qutip package: direct exact calculation for mixed states  
          - Note the measurements for pure states & mixed states are different for the treatment now                           
 
-	- StVer   =  control of the 'rand' state generation   
+	- StVer   = version control of the 'rand' state generation   
       - 'pure states': 0, i.e.  no need of this parameter
       - 'rand': list of [which version of generated data, to generate or not], i.e.
          - [1, 0] = [version 1, do not generate] 

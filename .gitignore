@@ -3,6 +3,11 @@ old/*.py
 quQST/old/*.py
 Load_workers.py
 *.txt
+Utility_2024*.py
+main_QST_v*.py
+exampleRun_v*.ipynb
+test_*.py
+fig/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
