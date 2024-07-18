@@ -5,6 +5,10 @@ Load_workers.py
 *.txt
 test_*.py
 quQST/states_qiskit_v013.py
+Utility_2024*.py
+main_QST_v*.py
+exampleRun_v*.ipynb
+fig/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
