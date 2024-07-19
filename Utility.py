@@ -32,7 +32,7 @@ import multiprocessing
 from itertools import repeat
 from functools import reduce
 
-#from Gen_localPauli import counting_elements
+from Gen_localPauli import counting_elements
 
 def Params_define(Nk, StateName, num_labels, num_shots, Nr, \
                 Pj_method, mea_method, measure_method, DirStore):

@@ -8,7 +8,7 @@ import projectors
 
 import Get_param
 
-#from Gen_localPauli import Gen_Site_2s_Pauli
+from Gen_localPauli import Gen_Site_2s_Pauli
 
 def compare_proj_dict(label_list, Proj_dict1, Proj_dict2):
 
