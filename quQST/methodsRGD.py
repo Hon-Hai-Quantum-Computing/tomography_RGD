@@ -202,7 +202,7 @@ class LoopRGD:
 
 	def A_dagger_vec(self, vec):
 
-		Xu  = np.zeros((self.num_elements, vec.shape[1]), dtype=np.complex)
+		Xu  = np.zeros((self.num_elements, vec.shape[1]), dtype=complex)
 		for yP, proj in zip(self.yIni, self.projector_list):
 			Xu += yP * proj.dot(vec)
 		Xu *= self.coef
@@ -211,7 +211,7 @@ class LoopRGD:
 
 	def A_dagger_ym_vec(self, zm, vec):
 
-		Xu  = np.zeros((self.num_elements, vec.shape[1]), dtype=np.complex)
+		Xu  = np.zeros((self.num_elements, vec.shape[1]), dtype=complex)
 		for yP, proj in zip(zm, self.projector_list):
 			Xu += yP * proj.dot(vec)
 		#Xu *= self.coef
@@ -874,7 +874,7 @@ class BasicWorkerRGD(WorkerParm, LoopRGD):
 
 	def calc_PtG_2_uG_Gv_Hermitian(self):
 
-		Gu  = np.zeros((self.num_elements, self.Nr), dtype=np.complex)
+		Gu  = np.zeros((self.num_elements, self.Nr), dtype=complex)
 
 		for proj, zmP in zip(*[self.projector_list, self.zm]):
 
@@ -894,7 +894,7 @@ class BasicWorkerRGD(WorkerParm, LoopRGD):
 
 		#tt0 = time.time()
 
-		Gu  = np.zeros((self.num_elements, self.Nr), dtype=np.complex)
+		Gu  = np.zeros((self.num_elements, self.Nr), dtype=complex)
 
 		if self.EigV_positive  == 1:			#  U = V
 
@@ -958,8 +958,8 @@ class BasicWorkerRGD(WorkerParm, LoopRGD):
 				#self.zm_Rec = np.array(self.zm_Rec) * self.coef
 
 		else:														#  U   !=   V
-			Gv  = np.zeros(self.vk.shape, dtype=np.complex)
-			#uGv = np.zeros((self.Nr, self.Nr), dtype=np.complex) 
+			Gv  = np.zeros(self.vk.shape, dtype=complex)
+			#uGv = np.zeros((self.Nr, self.Nr), dtype=complex) 
 
 			#zm_List = []
 			#for zmP, ymP, proj in zip(zm, self.measurement_list, self.projector_list):

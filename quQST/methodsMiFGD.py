@@ -523,9 +523,9 @@ class BasicWorker(WorkerParm, LoopMiFGD):
 
 	def projection_diff(self):
 
-		#state_diff = np.zeros(self.num_elements, dtype=np.complex)
-		#stateU_Diff = np.zeros((self.num_elements, self.Nr), dtype=np.complex)
-		stateU_Diff = np.zeros(self.stateU.shape, dtype=np.complex)
+		#state_diff = np.zeros(self.num_elements, dtype=complex)
+		#stateU_Diff = np.zeros((self.num_elements, self.Nr), dtype=complex)
+		stateU_Diff = np.zeros(self.stateU.shape, dtype=complex)
 		
 		for projector, measurement in zip(*[self.projector_list, self.measurement_list]):
 			#state_diff += self.single_projection_diff(projector, measurement, self.momentum_state)
