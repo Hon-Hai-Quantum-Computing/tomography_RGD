@@ -1,6 +1,7 @@
 # self defined ignore
 old/*.py
 quQST/old/*.py
+quQST/states_qiskit_v013.py
 Load_workers.py
 *.txt
 test_*.py
