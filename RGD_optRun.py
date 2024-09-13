@@ -49,8 +49,10 @@ def Run_RGD(params_dict, Rpm):
     # ------------------------------------------------------ ##
     #   read out needed parameters for specifying FileName   ##
     # ------------------------------------------------------ ##
-    version = params_dict['version']
-    ver_mea = version[1] 
+    
+    #version = params_dict['version']
+    #ver_mea = version[1] 
+    ver_mea = params_dict['measure version']
 
     if params_dict['Noise'] == 'shot':
         mea = params_dict['num_shots']
@@ -71,7 +73,7 @@ def Run_RGD(params_dict, Rpm):
         print('   RGD -->  Fname = {}'.format(Fname))
 
     elif worker.Noise == 'Exact':       #  the Exact coef -> no noise
-        zNoise  = version[2]            #  should be 0
+        #zNoise  = version[2]            #  should be 0
         #Fname = '{}_zN{}_v{}-RGD_Ix{}_Tr{}_Ap{}_sg{}'.format(Dir, zModel, ver_mea, InitX_RGD, Md_tr, Md_alp, Md_sig)
         #Fname = '{}_zN0_v{}-RGD_Ix{}_Tr{}_Ap{}_sg{}'.format(Dir, ver_mea, InitX_RGD, Md_tr, Md_alp, Md_sig)
         Fname = '{}zExact_v{}-RGD_Ix{}_Tr{}_Ap{}_sg{}'.format(Dir, ver_mea, InitX_RGD, Md_tr, Md_alp, Md_sig)

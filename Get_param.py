@@ -13,6 +13,23 @@ reload(measurements)
 
 
 def Do_measure(measurement_store_path, measurement_dict, mea_method, parallel=1, Name=None):
+    """ Given the shot measurement results and calculate the coefficients for each Pauli operator
+
+    Args:
+        measurement_store_path (str): path to store the measurements 
+        measurement_dict (_type_): 
+        mea_method (int): method to store / load the measurements
+        parallel (int, optional): To do the parallel measurements or not. Defaults to 1.
+        Name (str, optional): name of the target state. Defaults to None.
+
+    Returns:
+        if mea_method == 0:
+            return None
+        elif mea_method == 1:        
+            return labs, measurement_list
+            where labs             = list of sampled Pauli operators
+                  measurement_list = list of calculated coefficients for each Pauli operator
+    """
 
     print('\n  -------------  get result (saveInOne & Save_measurement_list) from measurement_dict  --------------------- \n')    
     print('        -->  Name = {}'.format(Name))
@@ -73,6 +90,18 @@ def Do_measure(measurement_store_path, measurement_dict, mea_method, parallel=1,
         return labs, measurement_list
 
 def Do_projector(s_label, projector_store_path, Pj_method):
+    """ to create Pauli projectors according to given s_label
+
+    Args:
+        s_label (list): list of sampled Pauli operator labels
+        projector_store_path (str): path to store the sampled Pauli projectors
+        Pj_method (int): specify the method to save | load  projectors
+
+    Returns:
+        _type_: _description_
+        int: (num_cpus) number of processors for producing projectors parallelly
+         saveP_bulk, Partition_Pj
+    """
 
     ## ---------------------------------------- ##
     ##  Projectors: Pauli string operators      ##
@@ -107,6 +136,16 @@ def Do_projector(s_label, projector_store_path, Pj_method):
     return num_cpus, saveP_bulk, Partition_Pj
 
 def Initial_params(params_setup, target_density_matrix, input_S):
+    """ To prepare dictionary of parameters needed for the tomography optimization
+
+    Args:
+        params_setup (dict): dictionary of parameters
+        target_density_matrix (ndarray): the target density matrix
+        input_S (class instance): the target state generated from the circuit
+
+    Returns:
+        dict: (params_dict) the dictionary of parameters needed for the optimization        
+    """
 #def Initial_params(params_setup, target_density_matrix):
 #def Initial_params(Dir, params_setup, target_density_matrix):
 #def Initial_params(Dir, params_qiskit, input_S):
@@ -139,7 +178,9 @@ def Initial_params(params_setup, target_density_matrix, input_S):
                    'projector_store_path': projector_store_path,
                    'DirRho': params_setup['DirRho'],
                    'StateName': params_setup['StateName'],
-                   'version': params_setup['version'],
+                   #'version': params_setup['version'],
+                   'Proj version': params_setup['Proj version'],
+                   'measure version': params_setup['measure version'],
                    'Pj_method': params_setup['Pj_method'],
                    'mea_method': params_setup['mea_method'],   
                    'measure_method': params_setup['measure_method'],                
@@ -162,7 +203,9 @@ def Initial_params(params_setup, target_density_matrix, input_S):
                    'projector_store_path': projector_store_path,
                    'DirRho': params_setup['DirRho'],
                    'StateName': params_setup['StateName'],
-                   'version': params_setup['version'],
+                   #'version': params_setup['version'],
+                   'Proj version': params_setup['Proj version'],
+                   'measure version': params_setup['measure version'],
                    'Pj_method': params_setup['Pj_method'],
                    'mea_method': params_setup['mea_method'],
                    'measure_method': params_setup['measure_method'],

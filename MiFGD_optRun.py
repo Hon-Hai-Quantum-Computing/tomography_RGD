@@ -19,6 +19,19 @@ from worker_saver import worker_container
 
 #def Run_MiFGD(params_dict, mu, InitX_MiFGD):
 def Run_MiFGD(params_dict, Rpm):
+    """ to run the MiFGD optimization according to specified parameters
+
+    Args:
+        params_dict (dict): dictionary of parameters for describing the system 
+        Rpm (list): list of numerical parameters for running the MiFGD optimization
+
+    Returns:
+        _type_: _description_
+
+        str: (Fname) the file name to record the optimization results
+        class: (wc) a class instance that only records necessary properties
+        float: (RunTime) the run time of the optimization
+    """
 
     InitX_MiFGD, mu, eta, Option = Rpm
 
@@ -49,8 +62,10 @@ def Run_MiFGD(params_dict, Rpm):
     # -------------------------------------------------------- ##
     #   read out needed parameters for specifying File name    ##
     # -------------------------------------------------------- ##
-    version = params_dict['version']
-    ver_mea = version[1] 
+    
+    #version = params_dict['version']
+    #ver_mea = version[1] 
+    ver_mea = params_dict['measure version']
 
     if params_dict['Noise'] == 'shot':
         mea = params_dict['num_shots']

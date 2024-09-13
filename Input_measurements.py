@@ -17,41 +17,65 @@ from Utility import Gen_Wst
 
 
 def create_measurement_bash(Nk, mea, StateName, meas_path, ml_lab_files, Fname):
+    """ to crate a bash script (run in Linux) for parallel processing measurements for different Pauli labels
 
-        os.system('rm {}'.format(Fname))
+    Args:
+        Nk (int): number of qubits for the state
+        mea (int): number of sampled Pauli operators
+        StateName (str): name of the state 
+        meas_path (str): path to store the measurements 
+        ml_lab_files (list): list of file names of parallel measurement results  
+        Fname (str): the bash script file name to run parallel measurements 
+                = 'Run_measure.sh' defined in input_measurement/Run_measurement_dict
+    """
 
-        f2 = open(Fname, 'w')
-        f2.write('#!/bin/bash\n\n')
-        f2.write('echo " Do the measurement by each part"\n\n')
-        f2.write('Nk={}\n'.format(Nk))
-        f2.write('mea={}\n'.format(mea))
-        f2.write('StateName={}\n'.format(StateName))
-        f2.write('meas_path={}\n'.format(meas_path))
-        f2.write('Rec=$meas_path"/Rec_qiskit_meas_dict_"\n\n')
-        
-        f2.write('echo "   Nk       = " $Nk\n')
-        f2.write('echo "   mea      = " $mea\n')
-        f2.write('echo " StateName  = " $StateName\n')
-        f2.write('echo " meas_path  = " $meas_path\n')
-        f2.write('echo " Rec Header = " $Rec\n\n')
+    os.system('rm {}'.format(Fname))
 
-        cmd = 'python parallel_measurements.py $Nk $mea $StateName $meas_path'
-        print('  cmd   = {}'.format(cmd))
+    f2 = open(Fname, 'w')
+    f2.write('#!/bin/bash\n\n')
+    f2.write('echo " Do the measurement by each part"\n\n')
+    f2.write('Nk={}\n'.format(Nk))
+    f2.write('mea={}\n'.format(mea))
+    f2.write('StateName={}\n'.format(StateName))
+    f2.write('meas_path={}\n'.format(meas_path))
+    f2.write('Rec=$meas_path"/Rec_qiskit_meas_dict_"\n\n')
+    
+    f2.write('echo "   Nk       = " $Nk\n')
+    f2.write('echo "   mea      = " $mea\n')
+    f2.write('echo " StateName  = " $StateName\n')
+    f2.write('echo " meas_path  = " $meas_path\n')
+    f2.write('echo " Rec Header = " $Rec\n\n')
 
-        for ii, file in enumerate(ml_lab_files):
-            ID_file = int(file[10:])
-            print(' file = {}  --> ID = {}\n'.format(file, ID_file))
+    cmd = 'python parallel_measurements.py $Nk $mea $StateName $meas_path'
+    print('  cmd   = {}'.format(cmd))
 
-            f2.write('taskset -c {} {} {} > $Rec"{}.txt" &\n'.format(ii, cmd, file, ID_file))
-        f2.write('\n')
-        f2.write('wait\n\n')
-        f2.write('echo "All the measurement_dict DONE"')
-        f2.close()
+    for ii, file in enumerate(ml_lab_files):
+        ID_file = int(file[10:])
+        print(' file = {}  --> ID = {}\n'.format(file, ID_file))
 
-        print('  Run parallel measurement file = {} is updated\n'.format(Fname))
+        f2.write('taskset -c {} {} {} > $Rec"{}.txt" &\n'.format(ii, cmd, file, ID_file))
+    f2.write('\n')
+    f2.write('wait\n\n')
+    f2.write('echo "All the measurement_dict DONE"')
+    f2.close()
+
+    print('  Run parallel measurement file = {} is updated\n'.format(Fname))
 
 
 def Run_measurement_dict(Nk, mea, StateName, meas_path, Run_method=1):
+    """ to load each separate part of sample Pauli labels
+        and then do the actual measurements separately | in parallel
+
+    Args:
+        Nk (int): number of qubits of the state
+        mea (int): number of shot measurements
+        StateName (str): name of the target state
+        meas_path (str): path to store the measurement results 
+        Run_method (int, optional): method to do the parallel measurement. Defaults to 1.
+
+    Returns:
+        float: time of computation
+    """
 
     tm1 = time.time()            
 
@@ -79,12 +103,13 @@ def Run_measurement_dict(Nk, mea, StateName, meas_path, Run_method=1):
             params = '{} {} {} {} {} '.format(Nk, mea, StateName, meas_path, file)
             Rec    = '{}/Rec_qiskit_meas_dict_{}.txt'.format(meas_path, file[10:])
             
-            cmd    = 'python parallel_measurements.py {} > {}'.format(params, Rec)
-            
+            #cmd    = 'python parallel_measurements.py {} > {}'.format(params, Rec)
+            cmd    = 'python parallel_measurements.py {} > {} &'.format(params, Rec)
+
             print('cmd = {}'.format(cmd))
             os.system(cmd)
 
-        #os.system('wait')
+        os.system('wait')
 
     elif Run_method == 1:
         method_Name = 'parallel CPU measurement_dict (Run.measure.sh)'
@@ -105,6 +130,23 @@ def Run_measurement_dict(Nk, mea, StateName, meas_path, Run_method=1):
     return tm2-tm1
 
 def combine_data_dict_Calc_Mlist(num_split, meas_path, Run_method=2):
+    """  to read out all stored results from the measurement data dictionary (meas_path)
+        & combine them into a list of measurement results 
+                    corresponding to coefficients of Pauli operators
+
+    Args:
+        num_split (int): number of stored files representing the measurement results, where
+            each file corresponds to separate Pauli labels
+        meas_path (str): directory path of storing measurements
+        Run_method (int, optional): control parameter for combining results. Defaults to 2.
+
+    Returns:
+        tuple: (measurement_outALL) = (label_list, measurement_list)
+                passed from measurements.MeasurementStore.Save_measurement_by_data_dict function, where
+            label_list       = list of Pauli operator labels
+            measurement_list = list of coefficients corresponding to the label_list
+
+    """
     # --------------------------------------------------------------- #
     #      combiner data_dict_each  & calc measurement_list           #
     # --------------------------------------------------------------- #
@@ -203,6 +245,18 @@ def combine_data_dict_Calc_Mlist(num_split, meas_path, Run_method=2):
     return measurement_outALL
 
 def split_label_4_measure(label_list):
+    """ to split the sampled Pauli label list into several chunks for later parallel processing
+        according to the number of multiproccessors, 
+        which will be set to 3 chunks if number of all labels is less than the number of multiprocessors
+
+    Args:
+        label_list (list): list of all labels of sampled Pauli matrices
+
+    Returns:
+        _type_: _description_
+        int : (num_cpus)   number of processors used for parellel generation of measurement results
+        list: (label_part) list of labels sperated by parellel generation
+    """
 
     num_cpus   = multiprocessing.cpu_count()
     #num_cpus2  = num_cpus - 2
@@ -218,7 +272,24 @@ def split_label_4_measure(label_list):
     return num_cpus, label_part
 
 
-def parallel_calc_measure_dict(Nk, m, mea, StateName, label_list, meas_path):
+def parallel_calc_measure_dict(Nk, m, mea, StateName, label_list, meas_path, Run_measure = 1):
+    """ to call the parallel computation of measurements
+
+    Args:
+        Nk (int): number of qubits of the state
+        m (int): number of sampled Pauli operators 
+        mea (int): number of shot measurements 
+        StateName (str): name of the target state
+        label_list (list): list of labels for sampled Pauli operators 
+        meas_path (str): directory path to store the measurement results
+        Run_measure (int, optional): control parameter for parallel computation. 
+                Defaults to 1 (running bash script in the Linux system).
+
+    Returns:
+        float: (t_parallel) time to do parallel measurements
+        int  : (num_cpus)   number of parallel cpu
+        list : (label_part) list of separate Pauli label list for parallel computation
+    """
 
     num_cpus, label_part = split_label_4_measure(label_list)
 
@@ -243,7 +314,7 @@ def parallel_calc_measure_dict(Nk, m, mea, StateName, label_list, meas_path):
     #cmd = 'ls {}/ml_labels*'.format(meas_path)
     #os.system(cmd)
 
-    Run_measure = 1
+    #Run_measure = 1
     t_parallel = Run_measurement_dict(Nk, mea, StateName, meas_path, Run_measure)
 
     #print(' measurement_outALL = {}'.format(measurement_outALL))
@@ -253,6 +324,18 @@ def parallel_calc_measure_dict(Nk, m, mea, StateName, label_list, meas_path):
 
 def compare_direct_and_exact(Nk, m, mea, StateName, label_list, mea_method, Pj_method, \
                 meas_path, proj_path):
+    """ Do the measurement and convert 
+
+    Args:
+        Nk (int): number of qubits
+        m (): _description_
+        mea (int): number of shot measurements
+        StateName (str): state name of target state
+        label_list (list): list of sampled Pauli operators
+        mea_method (int): the method to save | load measurement_dict (count_dict) 
+        Pj_method (int): the method to save | load  projectors
+        proj_path (str): the path to store the generated Pauli operators 
+    """
     print('  *****   the original whole label_list measurements for comparison   ***** \n')
     input_S, target_density_matrix, rho = Gen_Rho(Nk, StateName)
 
@@ -275,7 +358,19 @@ def compare_direct_and_exact(Nk, m, mea, StateName, label_list, mea_method, Pj_m
     #ym = Amea(projector_list, target_density_matrix, m, 2**Nk) * np.sqrt(m/2**Nk)
     #print(' ym = {}'.format(ym))
 
-def Pure_state_measure(params_setup, label_list, measure_method=3):
+def Pure_state_measure(params_setup, label_list, measure_method=3, Run_measure=1):
+    """ generation of measurement data for the pure state
+
+    Args:
+        params_setup (dict): dictionary of parameters
+        label_list (list): list of label names representing the sampled Pauli operators 
+        measure_method (int, optional): the method of numerical processing the measurement. Defaults to 3.
+                    if = 1: direct processing all the label_list
+                    if = 3: multiple cpu processors to parallelly producing the measurement data
+        Run_measure (int, optional): control parameter for parallel computation. Defaults to 1.
+                    (default 1 for running bash script in Linux)
+                    set to 0 if the bash script cannot be run in the (Windows) system
+    """
 
     Nk         = params_setup['n']
     m          = params_setup['num_labels']
@@ -288,7 +383,7 @@ def Pure_state_measure(params_setup, label_list, measure_method=3):
 
 
     if len(label_list) >  10000:
-        measure_method = 3
+        measure_method = 3             #    change to parallel computation
 
     if measure_method == 1:            #    direct calc
         tt1 = time.time()
@@ -309,8 +404,9 @@ def Pure_state_measure(params_setup, label_list, measure_method=3):
         # --------------------------------------------------- #
 
         #state_measure_save(Dir, params_setup, label_list, 
-        state_measure_save(meas_path, params_setup, label_list, 
-                measurement_dict, data_dict_list, backend,
+        state_measure_save(meas_path, params_setup, label_list, measurement_dict, 
+#        state_measure_save(meas_path, params_setup, label_list, 
+#                measurement_dict, data_dict_list, backend,
                 input_S, target_density_matrix, rho)
 
         tt2 = time.time()
@@ -320,7 +416,7 @@ def Pure_state_measure(params_setup, label_list, measure_method=3):
 
     elif measure_method == 3:          #  each CPU save result
 
-        t_parallel, num_cpus, label_part = parallel_calc_measure_dict(Nk, m, mea, StateName, label_list, meas_path)
+        t_parallel, num_cpus, label_part = parallel_calc_measure_dict(Nk, m, mea, StateName, label_list, meas_path, Run_measure)
 
         measurement_outALL = combine_data_dict_Calc_Mlist(num_cpus, meas_path)   #  combine data_dict  &  calc measurement_list
 
@@ -338,14 +434,34 @@ def Pure_state_measure(params_setup, label_list, measure_method=3):
 #def Get_measurement_by_labels(params_setup, label_list, New_Pj_shot, StVer, \
 #            T_rec, measure_method = 3):
 def Get_measurement_by_labels(params_setup, label_list, T_rec):
+    """to obtain the measurement results (the coefficients of each Pauli operator)
+    from the given label_list corresponding to the sampled Pauli operators 
+
+    Args:
+        params_setup (dict): dictionary storing all parameters
+        label_list (list): list of sampled Pauli operator labels
+        T_rec (dict): dictionary storing the time for generating 
+                    Pauli operators and their corresponding measurements
+
+    Returns:
+        np.array: (target_density_matrix) the matrix representation of the density matrix of interest
+        circuit : (input_S) the circuit to generate the pure state vector of interest (eg) GHZ, Had state
+                 will be set to None if the state vector is not generated from the circuit
+                        (eg) the random density matrix 
+
+        dict    : (T_rec) dictionary storing the time for generating 
+                    Pauli operators and their corresponding measurement results
+        int     : (num_cpus) number of processors for parallel calculation of measurement results
+
+    """
                               
     tm0 = time.time()
 
     Nk         = params_setup['n']
-    m          = params_setup['num_labels']
-    mea        = params_setup['num_shots']
+    #m          = params_setup['num_labels']
+    #mea        = params_setup['num_shots']
     StateName  = params_setup['StateName']
-    Nr         = params_setup['Nr']
+    #Nr         = params_setup['Nr']
     #Dir0       = params_setup['Dir0']
     #Dir        = params_setup['Dir']
     DirRho     = params_setup['DirRho']
@@ -354,16 +470,19 @@ def Get_measurement_by_labels(params_setup, label_list, T_rec):
     #Pj_method  = params_setup['Pj_method']
     mea_method = params_setup['mea_method']
 
-    New_Pj_shot    = params_setup['New_Pj_shot']
+    Gen_New_Meas = params_setup['Gen New Measure']   # control parameter for obtaining measurements
+    #New_Pj_shot    = params_setup['New_Pj_shot']
     measure_method = params_setup['measure_method'] 
-    StVer          = params_setup['StVer']
+    #StVer          = params_setup['StVer']
 
-    if New_Pj_shot[1] == 1:     #  do qiskit -> do shot measurement
+    if Gen_New_Meas == 1:        # create new measurement
+    #if New_Pj_shot[1] == 1:     #  do qiskit -> do shot measurement
         print('  ********   starting to DO measurement (qiskit or qutip)  ************** \n')
 
         if StateName == 'rand' or StateName == 'KapRnd':
 
-            target_density_matrix, rho = Gen_randM(Nk, StateName, Nr, StVer, DirRho)
+            target_density_matrix, rho = Gen_randM(params_setup, DirRho)
+            #target_density_matrix, rho = Gen_randM(Nk, StateName, Nr, StVer, DirRho)
             input_S = None
             #print('   Dir0   = {}'.format(Dir0))
             #print('   StVer  = {}'.format(StVer))
@@ -375,7 +494,9 @@ def Get_measurement_by_labels(params_setup, label_list, T_rec):
             num_cpus = 1
 
         elif StateName == 'GHZ' or StateName == 'Had':
-            t_parallel, num_cpus = Pure_state_measure(params_setup, label_list, measure_method)
+            Run_measure = 0  # control parameter for parallel computation (default 1 for running bash script in Linux)
+                             # set to 0 if the bash script cannot be run in the (Windows) system
+            t_parallel, num_cpus = Pure_state_measure(params_setup, label_list, measure_method, Run_measure)
             T_rec['parallel_measure'] = t_parallel
 
         elif StateName == 'quGH' or StateName == 'quHa' or StateName == 'quWst':
@@ -388,18 +509,8 @@ def Get_measurement_by_labels(params_setup, label_list, T_rec):
             input_S = None
             num_cpus = 1
 
-    elif New_Pj_shot[1] == 2:   #  to load measurement_dict from  xxx_qiskit.dat
-
-        if measure_method == 3:
-            num_cpus, label_part = split_label_4_measure(label_list)
-
-            print('   ********    start combining data_dict  [ Ncpu = {} ] -->  to do measurement_list    *****\n'.format(num_cpus))
-
-            measurement_outALL = combine_data_dict_Calc_Mlist(num_cpus, meas_path)   #  combine data_dict  &  calc measurement_list
-            #print('  -------   measurement_outputALL  = {}\n'.format(measurement_outALL))
-
-
-    elif New_Pj_shot[1] == 0:           #  to load measurement_list from  file
+    elif Gen_New_Meas == 0:           #  to load measurement_list from  file
+    #elif New_Pj_shot[1] == 0:           #  to load measurement_list from  file
 
         if StateName == 'rand' or StateName == 'KapRnd':
 
@@ -443,7 +554,19 @@ def Get_measurement_by_labels(params_setup, label_list, T_rec):
         num_cpus = 1
 
 
-    elif New_Pj_shot[1] == -1:           #  to load measurement_dict from  xxx_qiskit.dat
+    elif Gen_New_Meas == 2:     #  
+    #elif New_Pj_shot[1] == 2:   #  to load measurement_dict from  xxx_qiskit.dat
+
+        if measure_method == 3:
+            num_cpus, label_part = split_label_4_measure(label_list)
+
+            print('   ********    start combining data_dict  [ Ncpu = {} ] -->  to do measurement_list    *****\n'.format(num_cpus))
+
+            measurement_outALL = combine_data_dict_Calc_Mlist(num_cpus, meas_path)   #  combine data_dict  &  calc measurement_list
+            #print('  -------   measurement_outputALL  = {}\n'.format(measurement_outALL))
+
+    elif Gen_New_Meas == -1:           #  to load measurement_dict from  xxx_qiskit.dat
+    #elif New_Pj_shot[1] == -1:           #  to load measurement_dict from  xxx_qiskit.dat
         # ---------------------------------------------------------- #
         #   to download measurement data from qiskit recorded data   #
         #           measurement                                      #

@@ -175,6 +175,14 @@ def _pickle_saver(label, path):
     Projector(label).save(path)
 
 def _pickle_saveMap(label):
+    """ to produce the Pauli operator object 
+
+    Args:
+        label (str): Pauli operator label
+
+    Returns:
+        object: Projector(label) = the class instance of a Pauli operator
+    """
     #return Projector(label).dict()
     return Projector(label)
 
@@ -184,6 +192,12 @@ def _pickle_saveMap(label):
 
 # A projector as a class, hopefully with convenient methods :)
 class Projector:
+    """ to create a Pauli projector stored in an efficient way, 
+    instead of writing in the form of matrix directly
+
+    Returns:
+        class instance: _description_
+    """
     # Generate from a label or build from a dictionary represenation
     def __init__(self, arg, label_format='big_endian'):
         if isinstance(arg, str):
@@ -195,6 +209,11 @@ class Projector:
             self._build(data)    
 
     def _build(self, data):
+        """ to build a sparse matrix according to the given data
+
+        Args:
+            data (dict): specification of the matrix for non-zero values
+        """
         self.label        = data['label']
         self.label_format = data.get('label_format', 'big_endian')
         
@@ -254,6 +273,11 @@ class Projector:
     # i.e. ideal for serializing it
     # XXX Currently with Python's pickle format in mind; moving to json format would add to portability
     def dict(self):
+        """ to create a dict representation of the projector
+
+        Returns:
+            dict: data specifying non-zero values of the matrix
+        """
 
         data = {
             'values'         : self.matrix.data, 
@@ -331,6 +355,17 @@ class Projector:
     # Load a projector from disk
     @classmethod
     def load(cls, path, label, num_leading_symbols=0):
+        """ to load the data (dictionary representation of the Pauli projector)
+        and then create s sparse matrix representation
+
+        Args:
+            path (str): path storing the Pauli projector
+            label (str): the label of the Pauli projector 
+            num_leading_symbols (int, optional): the effective number of alphabet in the label. Defaults to 0.
+
+        Returns:
+            class instance: the object representing the Pauli projector
+        """
         #print(path)
         #print(os.path.isdir(path))
 
@@ -359,6 +394,8 @@ class Projector:
 
 
 class ProjectorStore:
+    """ to deal with several different Pauli projectors at one time
+    """
     def __init__(self, 
                  labels):
         self.labels = labels
@@ -366,6 +403,18 @@ class ProjectorStore:
 
     @classmethod
     def combine_proj_bulk(cls, proj_path, method_combine=1):
+        """ to cobmine parallelly produced Pauli operator chunks
+
+        Args:
+            proj_path (str): the path to store the projectors
+            method_combine (int, optional): method to do the combination. Defaults to 1.
+
+        Returns:                    
+            list: (label_sorted) list of sorted sampled Pauli operator labels
+            dict: (Pj_combine) the dictionary for all produced Pauli operators
+            int: (bulk_Pj) number of chunks storing different Pauli projectors
+            int: (num_cpus) number of cpu for parallel computation
+        """
         # --------------------------------------------- #
         #   loading projectors from each bulk           #
         # --------------------------------------------- #
@@ -500,6 +549,19 @@ class ProjectorStore:
 
     @classmethod
     def Load_Pj_part(cls, ID_label, Fname_lab, Fname_proj):
+        """ to load labels and the corresponding Pauli operators for this chunk
+            specified by the ID_label
+
+        Args:
+            ID_label (int): ID number of this Pauli operator chunk
+            Fname_lab (str): file name for storing labels
+            Fname_proj (str): file name for storing the Projectors 
+
+        Returns:
+            int: (ID_label) the ID number of this Pauli operator chunk
+            list: (label_Pj) the stored labels
+            dir: (Pj_list) the stored Pauli prjectors 
+        """
 
         print('         Start to load Fname_lab = {}   -->  ID_label = {}'.format(Fname_lab, ID_label))
         with open(Fname_lab, 'rb') as f:
@@ -657,6 +719,14 @@ class ProjectorStore:
 
     @classmethod
     def Save_label_Pj_dict(cls, Pj_list, labels, path, Name=None):
+        """ to save the given Pauli operators and labels in path
+
+        Args:
+            Pj_list (dict): dictionary referring to all Pauli operators
+            labels (list): list of Pauli operator labels
+            path (str): the path storing the Pauli operators 
+            Name (str, optional): suffix for the file name. Defaults to None.
+        """
 
         # ------------------------- #
         #   saving projectors       #
@@ -688,6 +758,14 @@ class ProjectorStore:
 
 
     def Save_label_Pj(self, projectors, labels, path, Name=None):
+        """ to save generated Pauli operators
+
+        Args:
+            projectors (class ProjectorStore): the object representing the projectors
+            labels (list): list of sampled Pauli operator labels
+            path (str): the path directory for storing the Pauli operators 
+            Name (str, optional): File suffix. Defaults to None.
+        """
 
         Pj_list = {}
         for Pj in projectors:
@@ -721,6 +799,15 @@ class ProjectorStore:
     # Load projectors previously saved under a disk folder
     @classmethod
     def load_PoolMap(cls, path, labels=None):
+        """ to load the stored Pauli projectors
+
+        Args:
+            path (str): the path to the projectors
+            labels (list, optional): list of Pauli operator labels. Defaults to None.
+
+        Returns:
+            dict: (projector_dict) dictionary with values referring to the projectors
+        """
 
         if labels == None:
             labels = cls.load_labels_from_file(path)
@@ -824,6 +911,16 @@ class ProjectorStore:
     # Load projectors previously saved under a disk folder
     @classmethod
     def load(cls, path, labels=None):
+        """ to load all the stored Pauli projectors from a given path
+
+        Args:
+            path (str): the path to the projectors
+            labels (list, optional): list of Pauli operator labels. Defaults to None.
+
+        Returns:
+            dict: (projector_dict) the dictionary with key of Pauli operator labels
+                and value of Pauli operators themselves
+        """
 
         if labels == None:
             labels = cls.load_labels(path)

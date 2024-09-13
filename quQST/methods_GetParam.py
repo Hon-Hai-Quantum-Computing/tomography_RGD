@@ -259,7 +259,8 @@ class WorkerParm:
 			#Model    = self.Noise[0]
 			zModel   = 0				# i.e.  No noise (Exact)
 
-			ver_meas = version[1]
+			#ver_meas = version[1]
+			ver_meas = params_dict['measure version']			
 			#F_noiseMea = '{}/zN{}_v{}_measurements'.format(measurement_store_path, Model, ver_meas)
 			F_noiseMea = '{}/zN{}_v{}_measurements'.format(measurement_store_path, zModel, ver_meas)
 

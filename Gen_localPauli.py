@@ -2,6 +2,15 @@
 import numpy as np
 
 def counting_elements(Nk, sym_Pauli):
+    """to count numbers for Pauli operators of different weights of 0, 1, 2, etc.
+
+    Args:
+        Nk (int): number of quibits
+        sym_Pauli (list): = ['X', 'Y', 'Z']
+
+    Returns:
+        list: a list of numbers for Pauli operators of weights 0, 1, 2, etc.
+    """
 
     nSym = len(sym_Pauli)
 

@@ -4,7 +4,15 @@
 
 
 class worker_container():
+    """ To have a wrapper that only records necessary information about the running result
+        for the purpose of later comparion with minimum recording of disk usage
+    """
     def __init__(self, worker) -> None:
+        """ to copy necessary information about the running result, including system information
+
+        Args:
+            worker (cls): the object of the optmization result
+        """
 
         self.StateName        = worker.StateName
         self.relative_error_tolerance = worker.relative_error_tolerance
@@ -49,6 +57,11 @@ class worker_container():
         self.method_dependent(worker)
 
     def method_dependent(self, worker):
+        """ to copy method dependent optimization method results
+
+        Args:
+            worker (cls): the object of the optmization result
+        """
         if self.method == 'RGD':
             self.Hermitian_List = worker.Hermitian_List
             self.EigV_pm_List   = worker.EigV_pm_List
@@ -101,6 +114,11 @@ class worker_container():
 
 
     def save_Run_Time(dt):
+        """ to save run time
+
+        Args:
+            dt (float): run time in seconds
+        """
         self.RunT     =    dt           #   total Run time
 
     def Print_Info(self):

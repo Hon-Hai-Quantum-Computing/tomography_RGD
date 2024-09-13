@@ -11,6 +11,7 @@ main_QST_v*.py
 main_QST_test.py
 exampleRun_v*.ipynb
 fig/
+DataTest/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

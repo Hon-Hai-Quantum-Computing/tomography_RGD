@@ -52,6 +52,12 @@ import pickle
 
 
 def Print_Target_Err(Ttot, Wk_dict):
+    """ To print the final target error message for each case
+
+    Args:
+        Ttot (dict): dictionary of recording running time for each case
+        Wk_dict (dict): dctionary of recording the optimization result of each case 
+    """
     # ----------------------------- #
     #   show some results           #
     # ----------------------------- #
@@ -100,18 +106,26 @@ def Print_Target_Err(Ttot, Wk_dict):
     print('\n')
 
 def FileRec_Tproj_Tmea(File_rec, T_rec, params_setup, Ncpu_Pj):
+    """ To print some information about the settings, including the measurement method
+
+    Args:
+        File_rec (str): File name of recording
+        T_rec (dict): dictionary of recording the running time
+        params_setup (dict): dictionary of parameters 
+        Ncpu_Pj (int): number of processors for parallel generation of Pauli projectors 
+    """
 
     Nk        = params_setup['n']
     m         = params_setup['num_labels']
     mea       = params_setup['num_shots']
-    StVer     = params_setup['StVer']
-    version   = params_setup['version']
+    #StVer     = params_setup['StVer']
+    #version   = params_setup['version']
 
     Pj_method  = params_setup['Pj_method']
     mea_method = params_setup['mea_method']
     measure_method = params_setup['measure_method']
 
-    #StateName = params_setup['StateName']
+    StateName = params_setup['StateName']
     Data_In  = params_setup['Data_In']
 
     DirRho   = params_setup['DirRho']
@@ -127,8 +141,21 @@ def FileRec_Tproj_Tmea(File_rec, T_rec, params_setup, Ncpu_Pj):
     f.write('     m        = {}\n'.format(m))
     f.write('     mea      = {}\n'.format(mea))
     if len(Data_In) == 0:
-        f.write('     StVer    = {}\n'.format(StVer))
-        f.write('     version  = {}\n'.format(version))
+        #f.write('     StVer    = {}\n'.format(StVer))
+        #f.write('     version  = {}\n'.format(version))
+        #f.write('     Generate New rand = {}\n'.format(params_setup['Generate New rand']))
+        #f.write('       rand matrix version = {}\n'.format(params_setup['rand matrix version']))
+
+        if StateName == 'rand' or StateName == 'KapRnd':
+            f.write('     (Generate New rand, rand matrix version) = ({}, {})\n'.format(
+                params_setup['Generate New rand'], params_setup['rand matrix version']))
+
+        #f.write('     Projector   version = {}\n'.format(params_setup['Proj version']))
+        #f.write('     measurement version = {}\n'.format(params_setup['measure version']))
+
+        f.write('     (Projector   version, measurement version) = ({}, {})\n'.format(
+            params_setup['Proj version'], params_setup['measure version']))
+
         #f.write('     meas_path    = {}\n'.format(meas_path))
         f.write('     meas_path    = {}\n'.format(Dir_meas))
     else:
@@ -149,6 +176,14 @@ def FileRec_Tproj_Tmea(File_rec, T_rec, params_setup, Ncpu_Pj):
 
 
 def FileRec_Tmethod(File_rec, Ttot, Wk_dict):
+    """ To record the information of different methods for comparison, including their
+        parameter settings, running time, and target errors
+
+    Args:
+        File_rec (str): File name of recording
+        Ttot (dict): dictionary of recording the running time 
+        Wk_dict (dict): dictionary of recording the optimization results
+    """
     # ------------------------------------  #
     #   record some results in File_rec     #
     # ------------------------------------  #
@@ -198,7 +233,25 @@ def FileRec_Tmethod(File_rec, Ttot, Wk_dict):
     f.close()
 
 def Tomography_over_measurement(params_setup, target_DM, input_S, \
-                                pm_RGD, pm_MiFGD, T_rec, Ncpu_Pj):
+                                pm_RGD, pm_MiFGD, T_rec):
+#                                pm_RGD, pm_MiFGD, T_rec, Ncpu_Pj):
+    """ Do the tomography for given the measurement results
+
+    Args:
+        params_setup (dict): dictionary of parameters
+        target_DM (nd.array): density matrix of the target state 
+        input_S (class instance): constructed circuit for the target state
+        pm_RGD (dict): dictionary of parameters for running the RGD method
+        pm_MiFGD (dict): dictionary of parameters for running the MiFGD method 
+        T_rec (dict): recording the running time 
+        Ncpu_Pj (int): number of processors for parallel generation of Pauli operators
+
+    Returns:
+        list: (Ttot) list of recording running times
+        dict: (Wk_dict) dictionary of recording running optimization results
+        dict: (params_setup) updated dictionary of parameters for running each case
+        dict: (T_rec) dictionary of recording running times
+    """
 
     # -------------------------------------------------------------- #
     #  get params_dict as the input for each optimization method     #
@@ -310,7 +363,17 @@ def Tomography_over_measurement(params_setup, target_DM, input_S, \
 
             print("The total time for each mu is {}".format(Ttot))
 
+    return Ttot, Wk_dict, params_setup, T_rec
 
+def Rec_Info(Ttot, Wk_dict, params_setup, T_rec):
+    """ To record information about each measurement case and all the methods applied to it
+
+    Args:
+        Ttot (dict): dictionary of recording run times
+        Wk_dict (dict): dictionary of recording the optimization results 
+        params_setup (dict): dictionary of parameters 
+        T_rec (dict): dictionary of recording the run times 
+    """
     # ----------------------------------------- #
     #   (D-2)'     file record information      #
     # ----------------------------------------- #
@@ -338,9 +401,33 @@ def Tomography_over_measurement(params_setup, target_DM, input_S, \
     print('  measurement_store_path = ')
     print('            {}'.format(params_setup['measurement_store_path']))
 
-    return Ttot, Wk_dict
+    #return Ttot, Wk_dict
 
 def Default_OptMethod_params():
+    """ to obtain some parameters for running the optimizer (MiFGD and RGD)
+
+    Returns:
+        list: (pm_MiFGD) = [Call_MiFGD, InitX_MiFGD, muList, Num_mu]
+
+            Call_MiFGD  = 1/0: to call the MiFGD optimization to calculate or not
+
+            InitX_MiFGD = 1    # 0: random start,  1: MiFGD specified init
+            muList      = list of mu parameters, (eg) [3/4, 0.25, 4.5e-5]
+            Num_mu      = number of mu for running MiFGD = len(muList)
+
+
+        list: (pm_RGD) = [Call_RGD, Rpm], 
+                        where Rpm = [InitX_RGD, Md_tr, Md_alp, Md_sig, Ch_svd]
+
+            Call_RGD    = 1/0: to call the RGD   optimization to calculate or not
+
+            InitX_RGD = 1;    # 0: random start,  1: RGD specified init
+            Md_tr  = Method if including unit trace, only use default 0
+            Md_alp = method for scaling alpha, only use default 0
+            Md_sig = method for scaling singular value, only use default 0
+            Ch_svd = (default -1) choice for initial SVD (0: LA.svd, 1: svds;  2: power_Largest_EigV, -1: rSVD)
+
+    """
 
     # ----------------------------------------------------------------- #
     #   (C) to call each optimization method to calculate               #
@@ -415,36 +502,80 @@ def Default_OptMethod_params():
     return pm_MiFGD, pm_RGD
 
 def Default_Setting_Run_Tomography(params_setup, target_density_matrix,\
-                                input_S, T_rec, Ncpu_Pj, pm_MiFGD, pm_RGD, List_alpha):
+                                input_S, T_rec, Ncpu_Pj, pm_MiFGD, pm_RGD):
+#                                input_S, T_rec, Ncpu_Pj, pm_MiFGD, pm_RGD, List_alpha):
+    """ Given the measurement results (read from directory specified by params_setup)
+        and do the tomography according to the optimization method parameters
+            where pm_MiFGD is the parameter for the optimization MiFGD method
+              and pm_RGD is the parameter for the optimization RGD method,    
+            
+        and return the time taken and the output of the tomography.
+
+    Args:
+        params_setup (dict): dictionary of parameters
+        target_density_matrix (nd.array): density matrix of the target state
+        input_S (class instance): circuit implementation of the target state
+        T_rec (dict): dictionary to update the running time
+        Ncpu_Pj (int): number of cpu to produce the Pauli projectors parallelly 
+        pm_MiFGD (dict): parameters specific to run the MiFGD optimization method 
+        pm_RGD (dict): parameters specific to run the RGD optimization method 
+        List_alpha (list): list of power bases to construct the singular values if provided
+
+    Returns:
+        dict: (T_Rho) to record the running time for different running cases
+        dict: (Wk_Rho) to record the output for different running cases
+
+    """
 
     T_Rho  = {}      #  record Ttot for each Rho
     Wk_Rho = {}      #  record Wk_dict for each Rho
 
-    DirRho    = params_setup['DirRho']
 
     # --------------------------------------------- #
     #   start doing the tomography optimization     #
     #       using   RGD  &  MiFGD                   #
     # --------------------------------------------- #
 
-    Ttot, Wk_dict = Tomography_over_measurement(params_setup, target_density_matrix, \
-                             input_S, pm_RGD, pm_MiFGD, T_rec, Ncpu_Pj)
+    Ttot, Wk_dict, params_setup, T_rec = \
+        Tomography_over_measurement(params_setup, target_density_matrix, \
+                             input_S, pm_RGD, pm_MiFGD, T_rec)
+#                             input_S, pm_RGD, pm_MiFGD, T_rec, Ncpu_Pj)
+    Rec_Info(Ttot, Wk_dict, params_setup, T_rec)
 
+    DirRho         = params_setup['DirRho']
     T_Rho[DirRho]  = Ttot
     Wk_Rho[DirRho] = Wk_dict
 
-    T_Rho2, Wk_Rho2 = Tune_Kappa_Tomography(params_setup, target_density_matrix, \
-            input_S, T_rec, Ncpu_Pj, List_alpha, pm_MiFGD, pm_RGD)
-    T_Rho.update(T_Rho2)
-    Wk_Rho.update(Wk_Rho2)
+    if params_setup['StateName'] == 'KapRnd':
+        T_Rho2, Wk_Rho2 = Tune_Kappa_Tomography(params_setup, target_density_matrix, \
+                input_S, T_rec, Ncpu_Pj, pm_MiFGD, pm_RGD)
+#                input_S, T_rec, Ncpu_Pj, List_alpha, pm_MiFGD, pm_RGD)
+        T_Rho.update(T_Rho2)
+        Wk_Rho.update(Wk_Rho2)
 
     return T_Rho, Wk_Rho
 
 def Tune_Kappa_Tomography(params_setup, target_density_matrix, input_S, T_rec, Ncpu_Pj, \
-                List_alpha, pm_MiFGD, pm_RGD):
-    """ (eg)        List_Kappa = [10, 20, 30]
-                    List_alpha = [0.25, 0.5, 1, 2, 3]
+                pm_MiFGD, pm_RGD):
+#                List_alpha, pm_MiFGD, pm_RGD):
+    """ change the singular values and the do tomography over measurements.
+        params_setup must have the key of List_Kappa that specifies the ratio between 
+            singular values. 
+                (eg) List_Kappa = [10, 20, 30]
+                     List_alpha = [0.25, 0.5, 1, 2, 3]
+ 
+    Args:
+        params_setup (dict): dictionary of parameters that must include key of List_Kappa 
+        target_density_matrix (nd.array): density matrix of the target state
+        input_S (class instance): circuit implementation of the target state 
+        T_rec (dict): dictionary of recording running time
+        Ncpu_Pj (int): number of parallel processors  
+        pm_MiFGD (dict): dictionary of parameters running the MiFGD optimization method
+        pm_RGD (dict): dictionary of parameters running the RGD optimization method 
 
+    Returns:
+        dict: (T_Rho) dictionary of recording running time for each case with different optimzation methods
+        dict: (Wk_Rho) dictionary of recording the optimzation results for each case with different optimzation methods
     """
 
     T_Rho  = {}      #  record Ttot for each Rho
@@ -452,13 +583,16 @@ def Tune_Kappa_Tomography(params_setup, target_density_matrix, input_S, T_rec, N
 
     Nr        = params_setup['Nr']
     StateName = params_setup['StateName']
-    StVer     = params_setup['StVer']
+    #StVer     = params_setup['StVer']
+    GenNewRand = params_setup['Generate New rand']  
 
     if StateName != 'KapRnd':
-        print('  NOT "KapRnd" --> not tuning Kappa')
+        print('  StateName NOT "KapRnd" --> no need to tune Kappa')
         return T_Rho, Wk_Rho
     
     elif StateName == 'KapRnd':
+        List_alpha = params_setup['List_alpha']
+
 
         Data_In = params_setup['Data_In']
 
@@ -468,15 +602,18 @@ def Tune_Kappa_Tomography(params_setup, target_density_matrix, input_S, T_rec, N
             raise TypeError(' The KapRnd not suitable for specifying DirMeas')
             
 
-        if StVer[1] == 1:            #  need to create New Rho
+        #if StVer[1] == 1:            #  need to create New Rho
+        if GenNewRand == 1:            #  need to create New Rho
             u, s, vh = Decompose_Rho(target_density_matrix, Nr, params_setup)
             del target_density_matrix
 
         for alpha in List_alpha:
 
-            if StVer[1] == 1:       #  create New Rho
+            #if StVer[1] == 1:       #  create New Rho
+            if GenNewRand == 1:       #  create New Rho
                 NewRho, s_new, Kappa = Tune_Kappa(u, s, vh, Nr, alpha)
-            elif StVer[1] == 0:     #  Rho already existed
+            #elif StVer[1] == 0:     #  Rho already existed
+            elif GenNewRand == 0:     #  Rho already existed
 
                 #raise ValueError(' need to Generate Rho for New Kappa, i.e. need StVer[1] = 1')
                 
@@ -486,14 +623,18 @@ def Tune_Kappa_Tomography(params_setup, target_density_matrix, input_S, T_rec, N
             params_setup, Dt_meas = Params_Kappa_change(params_setup, Kappa, alpha, NewRho, s_new)
             T_rec['measurement'] = Dt_meas
 
-            if StVer[1] == 0:       #  to read existing Rho
+            #if StVer[1] == 0:       #  to read existing Rho
+            if GenNewRand == 0:       #  to read existing Rho
                 DirRho = params_setup['DirRho']
 
                 with open('{}/RhoKappa.dat'.format(DirRho), 'rb') as f:
                     Kappa2, NewRho = pickle.load(f)
 
-            Ttot, Wk_dict = Tomography_over_measurement(params_setup, NewRho, \
-                                        input_S, pm_RGD, pm_MiFGD, T_rec, Ncpu_Pj)
+            Ttot, Wk_dict, params_setup, T_rec = \
+                Tomography_over_measurement(params_setup, NewRho, \
+                                        input_S, pm_RGD, pm_MiFGD, T_rec)
+#                                        input_S, pm_RGD, pm_MiFGD, T_rec, Ncpu_Pj)            
+            Rec_Info(Ttot, Wk_dict, params_setup, T_rec)
 
             DirRho               = params_setup['DirRho']
 
@@ -503,46 +644,78 @@ def Tune_Kappa_Tomography(params_setup, target_density_matrix, input_S, T_rec, N
     return T_Rho, Wk_Rho
 
 def Add_More_Kappa(params_setup, T_rec, Ncpu_Pj, List_alpha, pm_MiFGD, pm_RGD):
-    """ (eg)        List_Kappa = [40, 50]
-                    List_alpha = [0.3, 1, 2]
+    """ To continue generating more kappa caes, i.e. more singular value sets that 
+        have different Kappa values
+
+    Args:
+        params_setup (dict): dictionary of parameters
+        T_rec (dict): dictionary of recording running  
+        Ncpu_Pj (int): number of processors for parallel executions
+        List_alpha (list): list of alpha parameters representing the new ratio between singular values 
+                (eg)        List_Kappa = [40, 50]
+                            List_alpha = [0.3, 1, 2]
+        pm_MiFGD (dict): dictionary of parameters for running the MiFGD tomography optimization
+        pm_RGD (dict): dictionary of parameters for running the RGD tomography optimization
+
+    Raises:
+        ValueError: params_setup['Generate New rand'] must = 1 for generating new Kappa cases
+
+    Returns:
+        dict: (T_Rho) dictionary of recording running time for each case with different optimzation methods
+        dict: (Wk_Rho) dictionary of recording the optimzation results for each case with different optimzation methods
     """
 
-    StateName = params_setup['StateName']
-    Nk        = params_setup['n']
-    Nr        = params_setup['Nr']
+    #StateName = params_setup['StateName']
+    #Nk        = params_setup['n']
+    #Nr        = params_setup['Nr']
 
     #DirRho    = params_setup['DirRho']
     Dir2m     = params_setup['Dir2m']
     DirRho    = '{}/Kap0'.format(Dir2m)
 
-    StVer     = params_setup['StVer']
+    GenNewRand = params_setup['Generate New rand']  
+    #StVer     = params_setup['StVer']
 
     #StVer[1] = 0
     #params_setup['StVer'] = StVer
     #StVerR0 = [StVer[0], 0]
 
-    if StVer[1] == 0:
-        raise ValueError(' Need to generate New Kappa, i.e. must StVer[1] = 1')
+#    if StVer[1] == 0:
+    if GenNewRand == 0:
+        raise ValueError(' to generate New Kappa --> need to Generate new random matrices')
 
     T_rec['Ncpu_meas']    =  1   # same as  Get_measurement_by_labels
 
-    target_density_matrix, rho = Gen_randM(Nk, StateName, Nr, StVer, DirRho)
+    target_density_matrix, rho = Gen_randM(params_setup, DirRho)
+    #target_density_matrix, rho = Gen_randM(Nk, StateName, Nr, StVer, DirRho)
     input_S = None
 
+    params_setup['List_alpha'] = List_alpha
     T_Rho, Wk_Rho = Tune_Kappa_Tomography(params_setup, target_density_matrix, \
-                    input_S, T_rec, Ncpu_Pj, List_alpha, pm_MiFGD, pm_RGD)
+                    input_S, T_rec, Ncpu_Pj, pm_MiFGD, pm_RGD)
+#                    input_S, T_rec, Ncpu_Pj, List_alpha, pm_MiFGD, pm_RGD)
 
     return T_Rho, Wk_Rho
 
 
 
-def Sample_Rnd_Tomography(params_setup, Samples, Num_Rho, T_rec, Ncpu_Pj, pm_MiFGD, pm_RGD, List_alpha):
-    """  (eg)      Samples = 'sample4'
-                  Num_Rho  = 3
+#def Sample_Rnd_Tomography(params_setup, Samples, Num_Rho, T_rec, Ncpu_Pj, pm_MiFGD, pm_RGD, List_alpha):
+def Sample_Rnd_Tomography(params_setup, Samples, Num_Rho, T_rec, Ncpu_Pj, pm_MiFGD, pm_RGD):
+    """ to run several samples of random density matrices cases
 
+    Args:
+        params_setup (dict): dictionary of parameters
+        Samples (str): sub-directory name for storing different samples
+        Num_Rho (int): number of samples to generate random density matrices 
+        T_rec (dict): recording the running time 
+        Ncpu_Pj (int): number of processors to have parallel executions
+        pm_MiFGD (dict): dictionary of parameters for running the MiFGD method 
+        pm_RGD (dict): dictionary of parameters for running the RGD method
+
+    Returns:
+        dict: updated params_setup dictionary
     """
-
-    New_Pj_shot = params_setup['New_Pj_shot']
+    #New_Pj_shot = params_setup['New_Pj_shot']
     StateName   = params_setup['StateName']
 
     #if New_Pj_shot[1] != 1:
@@ -551,7 +724,7 @@ def Sample_Rnd_Tomography(params_setup, Samples, Num_Rho, T_rec, Ncpu_Pj, pm_MiF
     
     if StateName != 'rand':
         print('StateName = {}'.format(StateName))
-        print('  -->   NOT considered here \n\n')
+        print('  -->   NO need to generate random matrices \n\n')
         return params_setup
  
     for numID in range(1, Num_Rho+1):
@@ -563,8 +736,9 @@ def Sample_Rnd_Tomography(params_setup, Samples, Num_Rho, T_rec, Ncpu_Pj, pm_MiF
             Get_measurement_by_labels(params_setup, label_list, T_rec)
 
         T_Rho, Wk_Rho = Default_Setting_Run_Tomography(params_setup, \
-                    target_density_matrix, input_S, T_rec, Ncpu_Pj, pm_MiFGD, pm_RGD, List_alpha)
-
+#                    target_density_matrix, input_S, T_rec, Ncpu_Pj, pm_MiFGD, pm_RGD, List_alpha)
+                    target_density_matrix, input_S, T_rec, Ncpu_Pj, pm_MiFGD, pm_RGD)
+        
     print(' ---------- Run samples of RND completed --------- \n\n')
     return params_setup
 
@@ -613,7 +787,7 @@ if __name__ == "__main__":
     #             for  projectors  &  measurement                # 
     # ---------------------------------------------------------- #
 
-    StateName = 'KapRnd'; Nr = 3;  Noise = 0;    StVer = [1, 1]
+    #StateName = 'KapRnd'; Nr = 3;  Noise = 0;    StVer = [1, 1]
     #StateName = 'KapRnd';  Nr = 3;  Noise = 0;   StVer = [1, 0]    # load existing Rho
 
     #StateName = 'rand';   Nr = 3;  Noise = 0;    StVer = [1, 1]   # create new Rho
@@ -621,6 +795,23 @@ if __name__ == "__main__":
 
     #StateName = 'GHZ';    Nr = 1;  Noise = -1;   StVer = 0      
     #StateName = 'quWst';    Nr = 1;  Noise = 0;   StVer = 0      
+
+    State_version = { 'StateName': 'GHZ',        #  = 'GHZ', 'Had', 'rand', 'KapRnd'
+                      'Nr': 1,                    #  rank: 'GHZ', 'Had' --> only allow Nr =1 
+                      'Generate New rand': 1,     #  (only for 'rand', 'KapRnd') 1: generate new data |  0: load existing data
+                      'rand matrix version': 1,   #  (only for 'rand', 'KapRnd') version for random matrices  
+                      'List_alpha': [5, 7, 10]    #  only for 'KapRnd' to tune Kappa (not needed for other states)
+    }
+
+
+    Version_Def = { 
+        'Gen New Proj sampling': 1,     #  -1: specify fixed list, 1: generate sampling, 0: load existing sampling
+        'Proj version': 1,              #  counting projector version number
+        'Gen New Measure': 1,           #  1: generate new shot/calculated measure, 0: load existing 
+        'measure version': 2,           #  counting measure version number
+    }
+
+
 
     # --------------------------------- #
     #   some default parameters         #
@@ -630,6 +821,7 @@ if __name__ == "__main__":
     mea_method = 1              #   the method to save | load  measurement_dict (count_dict) 
 
     measure_method = 3          #  = 1: direct label_list,  = 3: parallel cpu
+    #measure_method = 1          #  = 1: direct label_list,  = 3: parallel cpu
 
     # ----------------------------------------------------- #
     #   version parameter for  Projectors & measurement     #
@@ -637,10 +829,13 @@ if __name__ == "__main__":
     # ----------------------------------------------------- #
 
     #DirStore = '../Tomography/calc'
-    DirStore = '../Tomography/DataTest'
+    #DirStore = '../Tomography/DataTest'
+    DirStore = './DataTest'
+    #Data_In  = []
 
 
-    version_choice = 1
+
+    version_choice = 0
     if version_choice == 1:     #  creating the whole new data set
         Data_In   = []
 
@@ -671,8 +866,8 @@ if __name__ == "__main__":
 
         New_Pj_shot = [0, 1]  #  [New Proj?, New shot?]  | [0,0] loading | 
 
-
-    version = [1, 2, Noise]   # [Proj version, measurement version, Noise]
+    #Noise   = 'original noise value'
+    #version = [1, 2, Noise]   # [Proj version, measurement version, Noise]
 
 
     # ---------------------------------------------------------- #
@@ -682,12 +877,18 @@ if __name__ == "__main__":
     #       according to the state & version defined in (A) (B)  # 
     # ---------------------------------------------------------- #    
 
-    params_setup = Params_define(Nk, StateName, m, mea, Nr, \
+    #StateName = State_version['StateName']
+    #Nr        = State_version['Nr']
+    #StVer    = 'original StVer'
+
+    params_setup = Params_define(State_version, Nk, m, mea,\
                 Pj_method, mea_method, measure_method, DirStore) 
 
-    params_setup = State_Naming(StVer, version, \
-                        params_setup, New_Pj_shot, Data_In)
-    del Nk, m, mea, Nr, Pj_method, mea_method, measure_method
+    params_setup = State_Naming(params_setup, \
+#                        State_version, Version_Def, Data_In)
+                        State_version, Version_Def)
+
+    del Nk, m, mea, Pj_method, mea_method, measure_method
     #del StVer, version, New_Pj_shot, Data_In
 
     # ------------------------------------------------- #
@@ -710,9 +911,8 @@ if __name__ == "__main__":
     #       to do the tomography with                                       #
     #             some default parameters needed by MiFGD/RGD respectively  #
     # --------------------------------------------------------------------- #
-
     pm_MiFGD, pm_RGD = Default_OptMethod_params()
-    List_alpha = [5, 7, 10]     #  only for 'KapRnd' --> to tune Kappa
+    #List_alpha = [5, 7, 10]     #  only for 'KapRnd' --> to tune Kappa
 
     Run_meas_Tomography = 1
     if Run_meas_Tomography == 1:      # do measurement & run tomography
@@ -720,12 +920,14 @@ if __name__ == "__main__":
         target_density_matrix, input_S, T_rec, Ncpu_meas = \
             Get_measurement_by_labels(params_setup, label_list, T_rec) 
 
+#def fjeifj():
+
         T_Rho, Wk_Rho = Default_Setting_Run_Tomography(params_setup, \
                         target_density_matrix, input_S, T_rec, Ncpu_Pj, \
-                        pm_MiFGD, pm_RGD, List_alpha)
+                        pm_MiFGD, pm_RGD)
+#                        pm_MiFGD, pm_RGD, List_alpha)
 
-
-
+#def fjei():
     # ----------------------------------------- #
     #   special cases:  run more cases          #
     #   [default]    Special_Usage = 0          #
@@ -735,7 +937,8 @@ if __name__ == "__main__":
 
     if Special_Usage == 1:    #  adding more Kappa cases  (only for KapRnd)
 
-        if StateName == 'KapRnd':   # continue generate more Kappa
+        #if StateName == 'KapRnd':   # continue generate more Kappa
+        if params_setup['StateName'] == 'KapRnd':   # continue generate more Kappa
 
             List_alpha = [11, 12]
 
@@ -748,7 +951,8 @@ if __name__ == "__main__":
         Num_Rho  = 5
 
         params_setup = Sample_Rnd_Tomography(params_setup, Samples, \
-                        Num_Rho, T_rec, Ncpu_Pj, pm_MiFGD, pm_RGD, List_alpha)
+                        Num_Rho, T_rec, Ncpu_Pj, pm_MiFGD, pm_RGD)
+#                        Num_Rho, T_rec, Ncpu_Pj, pm_MiFGD, pm_RGD, List_alpha)
 
 
     print(' ******   Happy Ending   *****')

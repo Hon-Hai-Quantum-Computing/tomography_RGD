@@ -16,12 +16,15 @@ from qiskit.providers.basic_provider import BasicSimulator
 
 
 class State:
+    """ qiskit circuit generator of specified quantum state
+    """
     def __init__(self, n):
         """Initializes State class
-        - n: number of qubits
-        - quantum register: object to hold quantum information
-        - classical register: object to hold classical information
-        - circuit_name: circuit name; defined in each subclass (GHZState, HadamardState, RandomState)
+
+            - n: number of qubits
+            - quantum register: object to hold quantum information
+            - classical register: object to hold classical information
+            - circuit_name: circuit name; defined in each subclass (GHZState, HadamardState, RandomState)
 
         Args:
             n (int): number of qubits
@@ -137,7 +140,7 @@ class State:
 
     @staticmethod    
     def make_measurement_circuit_name(circuit_name, label):
-        """Measurement circuit naming convention
+        """ Measurement circuit naming convention
 
         Args:
             circuit_name (str): name of the circuit, usually the state name
@@ -154,7 +157,7 @@ class State:
                                      backend   = BasicSimulator(),
                                      num_shots = 100,
                                      label_format='big_endian'):
-        """Executes measurement circuits
+        """ Executes measurement circuits
 
         Args:
             labels (list[str]):list of labels where each label is a string of Pauli matrices (e.g. XYZXX) 
@@ -202,11 +205,19 @@ class GHZState(State):
         State (class State): the constructed circuit
     """
     def __init__(self, n):
+        """ initialization of GHZState class by calling class State
+
+        Args:
+            n (int): number of quibts of the state
+        """
         State.__init__(self, n)
         self.circuit_name = 'GHZ'
 
         
-    def create_circuit(self):        
+    def create_circuit(self):    
+        """
+        Creates a quantum circuit for a GHZ state using qiskit
+        """    
         circuit = qiskit.QuantumCircuit(self.quantum_register, 
                                  self.classical_register, 
                                  name=self.circuit_name)
@@ -223,11 +234,19 @@ class HadamardState(State):
     Constructor for HadamardState class
     '''
     def __init__(self, n):        
+        """ initialization of Hadamard State class by calling class State
+
+        Args:
+            n (int): number of quibts of the state
+        """
         State.__init__(self, n)
         self.circuit_name = 'Hadamard'
         
         
     def create_circuit(self):
+        """
+        Creates a quantum circuit for a Hadamard state using qiskit
+        """
         circuit = qiskit.QuantumCircuit(self.quantum_register, 
                                  self.classical_register, 
                                  name=self.circuit_name)
