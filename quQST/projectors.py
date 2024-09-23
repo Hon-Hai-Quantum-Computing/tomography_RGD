@@ -114,6 +114,18 @@ def generate_random_label_list(size,
 # Generate a projector by accumulating the Kronecker products of Pauli matrices
 # XXX Used basically to make sure that our fast implementation is correct
 def build_projector_naive(label, label_format='big_endian'):
+    """ to directly generate a Pauli matrix from tensor products
+
+    Args:
+        label (str): label of the projection, e.g.  'XXZYZ'
+        label_format (str, optional): the ordering of the label. Defaults to 'big_endian'.
+
+    Raises:
+        Exception: when the matrix size is too big (i.e. for qubit number > 6)
+
+    Returns:
+        ndarray: a matrix representing the Pauli operator 
+    """
     if label_format == 'little_endian':
         label = label[::-1]
     if len(label) > 6:
@@ -124,6 +136,15 @@ def build_projector_naive(label, label_format='big_endian'):
 
 # Generate a projector by computing non-zero coordinates and their values in the matrix, aka the "fast" implementation
 def build_projector_fast(label, label_format='big_endian'):
+    """ to fastly generate a Pauli projection matrix in sparse matrix format
+
+    Args:
+        label (str): label of the projection, e.g.  'XXZYZ'
+        label_format (str, optional): the ordering of the label. Defaults to 'big_endian'.
+
+    Returns:
+        sparse matrix: sparse matrix of the Pauli operator representing label
+    """
     if label_format == 'little_endian':
         label = label[::-1]
 
@@ -263,9 +284,6 @@ class Projector:
         if self.csr_matrix is None:
             self.csr_matrix = sparse.csr_matrix(self.matrix)
 
-        #print(' ---------  csr  -----------')
-        #print(' self.csr_matrix  = {}'.format(self.csr_matrix))    
-        #print(' self.matrix      = {}'.format(self.matrix))
         return self.csr_matrix
 
 
@@ -288,13 +306,6 @@ class Projector:
             'value_type'     : self.matrix.dtype,
             'label'          : self.label
         }
-
-        #print(' *********  dict *********')
-        #print(self.matrix)
-        #print(' row     =  {}'.format(self.matrix.row))
-        #print(' column  =  {}'.format(self.matrix.col))
-        #print(' shape   =  {}'.format(self.matrix.shape))
-        #print(data)
 
         return data
 
@@ -366,16 +377,12 @@ class Projector:
         Returns:
             class instance: the object representing the Pauli projector
         """
-        #print(path)
-        #print(os.path.isdir(path))
-
 
         if os.path.isdir(path):
             if num_leading_symbols == 0:
                 fpath = os.path.join(path, '%s.pickle' % label)
                 data  = cls._pickle_load(fpath)
 
-                #print('fpath    =  {}'.format(fpath))
             else:
                 fragment_name = label[:num_leading_symbols]
                 fpath         = os.path.join(path, fragment_name, '%s.pickle' % label)
@@ -385,8 +392,6 @@ class Projector:
             fpath = path
             data  = cls._hdf5_load(fpath, label)
 
-        #print(data)
-        #print(' type = {}'.format(isinstance(data, dict)))
         projector = cls(data)
         return projector
 
@@ -423,10 +428,7 @@ class ProjectorStore:
         with open(F_label_ALL, 'rb') as f:
             label_ALL = pickle.load(f)
 
-        #cmd = 'ls {}/labels_*'.format(proj_path)
-        #os.system(cmd)
         proj_lab_files = [xx for xx in os.listdir(proj_path) if xx.startswith("labels_")]
-        #proj_lab_name = [fname.split('.')[0]  for fname in proj_lab_files]
 
         bulk_Pj = len(proj_lab_files)
     
@@ -444,13 +446,6 @@ class ProjectorStore:
 
 
                 ID_Pj, label_Pj, Pj_list = cls.Load_Pj_part(ID_label, Fname_lab, Fname_proj)
-                #ID_Pj, label_Pj, Pj_list = cls.Load_Pj_part_wrap([ID_label, Fname_lab, Fname_proj])
-                            
-                #print('           ID = {} -->  Pj_list = {}\n'.format(ID_Pj, Pj_list))
-                #print('           label_Pj = {}\n'.format(label_Pj))
-
-                #for label in label_Pj:
-                #    Pj_combine[label] = Pj_list[label]
 
                 label_combine += label_Pj
                 Pj_combine.update(Pj_list)
@@ -506,12 +501,6 @@ class ProjectorStore:
                 ID_Pj, label_Pj, Pj_list = res.get()
 
                 print('    --------  ID = {} is popped from res_list  ---------- '.format(ID_Pj))
-                #print('           res.get() = {}\n'.format(res.get()))  
-                #print('           ID = {} -->  Pj_list = {}\n'.format(ID_Pj, Pj_list))
-                #print('           label_Pj = {}\n'.format(label_Pj))
-
-                #for label in label_Pj:
-                #    Pj_combine[label] = Pj_list[label]
 
                 ID_order.append(ID_Pj)
                 label_combine += label_Pj
@@ -519,7 +508,6 @@ class ProjectorStore:
             print('    ########    After popping -->  len(res_list) = {}   ######\n'.format(len(res_list)))
 
 
-        #print(' Pj_combine = {}\n'.format(Pj_combine))
         if len(Pj_combine) != len(label_ALL):
             print('  ERROR:  len(Pj_combine) != len(label_ALL) \n') 
             return
@@ -531,8 +519,6 @@ class ProjectorStore:
         
         if method_combine == 1:
             print('      ID order of returning from parallel CPU  = {}\n'.format(ID_order))
-        #print('    Pj_combine   = {}\n'.format(Pj_combine))
-        #print('    label_sorted = {}'.format(label_sorted))
         print('       ----------     Total # bulk Pj file = {}   ---------------'.format(bulk_Pj))
         print('       ----------     ALL Pj_list are combined   --------------- \n')
 
@@ -541,7 +527,6 @@ class ProjectorStore:
     @classmethod
     def Load_Pj_part_wrap(cls, argv):
 
-        #print('      argv = {}'.format(argv))
         ID_label, label_Pj, Pj_list = cls.Load_Pj_part(*argv)
 
         return ID_label, label_Pj, Pj_list
@@ -641,8 +626,6 @@ class ProjectorStore:
 
                 NowSize += len(labels)
                 print('  ***  Proj {}-th bulk:  # {} projectors were created'.format(ii, NowSize))
-                #print(labels)
-                #print(self.labels)
 
                 if int(NowSize/mp_num_max) >= saveP:
                     pool.close()
@@ -651,7 +634,6 @@ class ProjectorStore:
                     self.Save_label_Pj(res, labels_collect, path, saveP)
 
                     print('  ***  {}-th labels_part  ->  saved bulk size = {}, NowSize = {}'.format(ii, len(labels_collect), NowSize))
-                    #print('  ***       labels_collect = {}\n'.format(labels_collect))
                     print('  #########       restart pool      #########\n')
 
                     saveP += 1
@@ -695,12 +677,9 @@ class ProjectorStore:
             for ii in range(self.size):
                 out = pool.apply_async(_pickle_saveMap, (self.labels[ii], ))
                 res.append(out.get())
-                #print('  out = {}'.format(out.get()))
             
         pool.close()
         pool.join()
-        #print('res = {} \n'.format(res))
-        #print(' len(res) = {}\n'.format(len(res)))
 
         # --------------------------------- #
         #   saving calculated projectors    #
@@ -714,7 +693,6 @@ class ProjectorStore:
         print('     pool.{}  COMPLETED by #CPU = {} \n'.format(mp_method, num_cpus))
         print('     [projectors] num_cpus = {},  saved bulk Pj = {} \n'.format(num_cpus, saveP))
 
-        #return res, Pj_list
         return num_cpus, saveP, Partition_Pj
 
     @classmethod
@@ -791,7 +769,6 @@ class ProjectorStore:
         f_label = '{}/labels.pickle'.format(path)
         with open(f_label, 'rb') as f:
             labels = pickle.load(f)
-        #print('  -->  loading from file: labels = {}'.format(labels))
         print('   --->  loading labels DONE from file = {}'.format(f_label))
 
         return labels
@@ -819,12 +796,6 @@ class ProjectorStore:
         projector_dict = {}
         for label in labels:
             projector_dict[label] = Pj_list[label]
-
-        #print('f_label = {}'.format(f_label))
-        #print('fname = {}'.format(fname))
-        #print('labels = {}'.format(labels))
-        #print(Pj_list)
-        #print(projector_dict)
 
         return projector_dict
 
@@ -875,13 +846,9 @@ class ProjectorStore:
                 process.start()
                 process_list.append(process)
 
-            #print(' -------- before joining process list ---------')
-            #print(' process_list ={}'.format(process_list))
-
             # moving join() inside the outer loop to avoid "too many files open" error    
             for p in process_list:
                 p.join()
-            #print(' ======   end joining process  ========')
 
     @classmethod
     def load_labels(cls, path, Nk=None):

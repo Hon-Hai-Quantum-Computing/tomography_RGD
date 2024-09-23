@@ -49,13 +49,11 @@ def Run_MiFGD(params_dict, Rpm):
 
     tw2a = time.time()
 
-    #worker = methodsMiFGD.BasicWorker(params_dict, input_S)
     worker = methodsMiFGD.BasicWorker(params_dict)
 
     worker.compute(InitX_MiFGD)
     
     tw2b = time.time()
-    #print(' *****       mu ={}    -->   elapsed time = {}    ***** '.format(mu, tw2b - tw2a))
 
     RunTime = tw2b - tw2a
 
@@ -63,8 +61,6 @@ def Run_MiFGD(params_dict, Rpm):
     #   read out needed parameters for specifying File name    ##
     # -------------------------------------------------------- ##
     
-    #version = params_dict['version']
-    #ver_mea = version[1] 
     ver_mea = params_dict['measure version']
 
     if params_dict['Noise'] == 'shot':
@@ -80,14 +76,10 @@ def Run_MiFGD(params_dict, Rpm):
     #   specify the FileName to record the RGD result  ##
     # ------------------------------------------------ ##
 
-    #if worker.Noise == None:            #  the normal shot measurements
     if worker.Noise == 'shot':           #  the normal shot measurements
         Fname = '{}shot{}_v{}-MiFGD-mu{:.3}'.format(Dir, mea, ver_mea, mu)
 
     elif worker.Noise == 'Exact':       #  the Exact coef -> no noise
-        #zModel  = version[2]           #  should be 0
-        #Fname = '{}_zN{}_v{}-MiFGD-mu{:.3}'.format(Dir, zModel, ver_mea, mu)
-        #Fname = '{}_zN0_v{}-MiFGD-mu{:.3}'.format(Dir2m, ver_mea, mu)
         Fname = '{}zExact_v{}-MiFGD-mu{:.3}'.format(Dir, ver_mea, mu)
     else:
         Fname = 'NotExist'

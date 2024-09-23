@@ -33,6 +33,15 @@ class WorkerParm:
 				 num_processes,
 #				 params_dict, input_S):
 				 params_dict):
+		""" to read parameters from params_dict 
+			and load all the sampled Pauli operators and measurement results
+			necessary for optimization
+			
+		Args:
+			process_idx (int): the index of the process. Default is 0
+			num_processes (int): the number of processes to be run parallelly. Default is 1
+			params_dict (dict): dictionary of all parameters for optimization
+		"""
 
 		projector_store_path     = params_dict.get('projector_store_path', None)
 		num_iterations           = params_dict['num_iterations']
@@ -444,6 +453,18 @@ class WorkerParm:
 ############################################################
 
 def split_list(x, num_parts):
+	""" to slice list x into num_parts separated elements
+
+	Args:
+        x (list): list of elements which are supposed to be Pauli operator labels
+        num_parts (int): the number of parts we want to split x 
+		
+	Returns:
+        list: list of separated list x into num_parts elments.
+            (eg) x = ['YYY', 'XXZ', 'XYY', 'YIY', 'ZIZ', 'XXY', 'IXZ', 'IIX', 'ZXY', 'IIZ']
+            then split_list(x, 3) = [['YYY', 'XXZ', 'XYY'], ['YIY', 'ZIZ', 'XXY'], ['IXZ', 'IIX', 'ZXY', 'IIZ']]
+
+	"""
 	n = len(x)
 	size = n // num_parts
 	parts = [x[i * size: (i+1) * size] for i in range(num_parts - 1 )]

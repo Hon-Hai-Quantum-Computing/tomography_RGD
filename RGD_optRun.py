@@ -36,13 +36,11 @@ def Run_RGD(params_dict, Rpm):
 
     tw2a = time.time()
 
-    #worker = methodsRGD.BasicWorkerRGD(params_dict, input_S)
     worker = methodsRGD.BasicWorkerRGD(params_dict)
 
     worker.computeRGD(InitX_RGD, Ch_svd, Md_tr, Md_alp, Md_sig)
 
     tw2b = time.time()
-    #print(' --------- RGD worker time = {}  --------'.format(tw2b - tw2a))
 
     RunTime = tw2b - tw2a
 
@@ -50,8 +48,6 @@ def Run_RGD(params_dict, Rpm):
     #   read out needed parameters for specifying FileName   ##
     # ------------------------------------------------------ ##
     
-    #version = params_dict['version']
-    #ver_mea = version[1] 
     ver_mea = params_dict['measure version']
 
     if params_dict['Noise'] == 'shot':
@@ -67,15 +63,11 @@ def Run_RGD(params_dict, Rpm):
     #   specify the FileName to record the RGD result  ##
     # ------------------------------------------------ ##
 
-    #if worker.Noise == None:            #  the normal shot measurements
     if worker.Noise == 'shot':            #  the normal shot measurements
         Fname = '{}shot{}_v{}-RGD_Ix{}_Tr{}_Ap{}_sg{}'.format(Dir, mea, ver_mea, InitX_RGD, Md_tr, Md_alp, Md_sig)
         print('   RGD -->  Fname = {}'.format(Fname))
 
     elif worker.Noise == 'Exact':       #  the Exact coef -> no noise
-        #zNoise  = version[2]            #  should be 0
-        #Fname = '{}_zN{}_v{}-RGD_Ix{}_Tr{}_Ap{}_sg{}'.format(Dir, zModel, ver_mea, InitX_RGD, Md_tr, Md_alp, Md_sig)
-        #Fname = '{}_zN0_v{}-RGD_Ix{}_Tr{}_Ap{}_sg{}'.format(Dir, ver_mea, InitX_RGD, Md_tr, Md_alp, Md_sig)
         Fname = '{}zExact_v{}-RGD_Ix{}_Tr{}_Ap{}_sg{}'.format(Dir, ver_mea, InitX_RGD, Md_tr, Md_alp, Md_sig)
     else:
         Fname = 'NotExist'

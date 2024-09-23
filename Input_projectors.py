@@ -57,9 +57,6 @@ def Check_combine_projectors(proj_path, label_list, Pj_combine):
     Pj_method = 0
     num_cpus, saveP_bulk = Get_param.Do_projector(label_list, proj_path, Pj_method)
 
-    #labels = projectors.ProjectorStore.load_labels(proj_path)
-
-    #projector_dict = projectors.ProjectorStore.load(proj_path, label_list)
     projector_dict = projectors.ProjectorStore.load(proj_path)
 
     compare_proj_dict(label_list, projector_dict, Pj_combine)
@@ -137,7 +134,6 @@ def Get_label_list_by_Projector(params_setup, New_Pj):
     m          = params_setup['num_labels']
     proj_path  = params_setup['projector_store_path']
     Pj_method  = params_setup['Pj_method']
-    #Obtain_Pj  = params_setup['Obtain_Pj']
 
     # ------------------------------------------------------------------ #
     #           projectors  ==> generate / loading  label_list           #
@@ -204,9 +200,7 @@ def Get_label_list_by_Projector(params_setup, New_Pj):
             label_list = [fname.split('.')[0] for fname in os.listdir(proj_path)]
         elif Pj_method == 1:    #  new method
             label_list = projectors.ProjectorStore.load_labels_from_file(proj_path)
-        #print('label_list = {}'.format(label_list))
 
-        #proj_combine_dict = projectors.ProjectorStore.load_PoolMap(proj_path, label_list)
         num_cpus = 1
 
     tp1 = time.time()

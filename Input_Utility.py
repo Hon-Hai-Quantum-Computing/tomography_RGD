@@ -20,7 +20,6 @@ def Gen_Projectors(params_setup):
         int: (saveP_bulk) number of final saved projector files for later processing
     """
 
-    #New_Pj_shot = params_setup['New_Pj_shot']
     New_Pj = params_setup['Gen New Proj sampling']
 
     # ---------------------------------------------- #
@@ -32,7 +31,6 @@ def Gen_Projectors(params_setup):
     print('  ######       saveP_bulk = {}  for Ncpu_Pj = {}    ########\n'.format(saveP_bulk, Ncpu_Pj))
 
     if Partition_Pj == 1 and New_Pj !=2:
-    #if Partition_Pj == 1 and New_Pj_shot[0] !=2:
         print('  ######   saveP_bulk = {} > 1  -->  combining bulks of Pj_list   ############\n'.format(saveP_bulk))
         New_Pj = 2
         label_list2, T_rec, Ncpu_Pj, saveP_bulk, Partition_Pj = \

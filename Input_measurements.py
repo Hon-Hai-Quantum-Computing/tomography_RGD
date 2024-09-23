@@ -91,19 +91,9 @@ def Run_measurement_dict(Nk, mea, StateName, meas_path, Run_method=1):
         for file in ml_lab_files:
             print('  file = {}\n'.format(file))
 
-            #  This seems not working for called file, i.e. not in the main
-            #sys.argv = ['parallel_measurements.py']
-            #sys.argv.append(Nk) 
-            #sys.argv.append(mea)
-            #sys.argv.append(StateName)
-            #sys.argv.append(meas_path)
-            #sys.argv.append(file)
-            #exec(open('parallel_measurements.py').read())
-
             params = '{} {} {} {} {} '.format(Nk, mea, StateName, meas_path, file)
             Rec    = '{}/Rec_qiskit_meas_dict_{}.txt'.format(meas_path, file[10:])
             
-            #cmd    = 'python parallel_measurements.py {} > {}'.format(params, Rec)
             cmd    = 'python parallel_measurements.py {} > {} &'.format(params, Rec)
 
             print('cmd = {}'.format(cmd))
@@ -156,7 +146,6 @@ def combine_data_dict_Calc_Mlist(num_split, meas_path, Run_method=2):
     print('   #####   start loading each data_dict from each label_part   ####\n')
 
     label_file = [xx for xx in os.listdir(meas_path) if xx.startswith('ml_labels_')]
-    #print('label_file = {}'.format(label_file))
 
     if len(label_file) == num_split:
         print('          num_split  = {}'.format(num_split))
@@ -175,12 +164,8 @@ def combine_data_dict_Calc_Mlist(num_split, meas_path, Run_method=2):
                 measurements.MeasurementStore.load_labels_data(meas_path, ID_label)
             labels_ALL    += labels_each
 
-            #for label in labels_each:
-            #    data_dict_ALL[label] = data_dict_each[label]
             data_dict_ALL.update(data_dict_each)
             
-        #print('   combined -->  data_dict_ALL  = {}'.format(data_dict_ALL))
-
         if len(labels_ALL) ==  len(data_dict_ALL):
             print('\n   #####     num of data_dict_ALL = {}      #####'.format(len(data_dict_ALL)))
         else:
@@ -219,8 +204,6 @@ def combine_data_dict_Calc_Mlist(num_split, meas_path, Run_method=2):
 
             measurement_combine  += measurement_part[1]
 
-            #print(' labels_each = {}'.format(labels_each))
-            #print(' measurement_part = {}\n'.format(measurement_part))
 
         ID_sort = sorted(range(len(labels_ALL)), key=lambda k: labels_ALL[k])
         
@@ -234,12 +217,6 @@ def combine_data_dict_Calc_Mlist(num_split, meas_path, Run_method=2):
         print('\n    >>>>>>>>        measurement_list is combined and sorted         <<<<< \n')
 
         measurements.MeasurementStore.Save_measurement_list_file(meas_path, sort_labels, measurement_sort, 'ALL')
-
-        #print('  labels_ALL = {}'.format(labels_ALL))
-        #print('  sorted(labels_ALL) = {}'.format(sorted(labels_ALL)))
-        #print('  ID_sort = {}'.format(ID_sort))
-        #print('  measurement_combine = {}'.format(measurement_combine))
-        #print('  measurement_sort    = {}'.format(measurement_sort))
 
 
     return measurement_outALL
@@ -311,13 +288,8 @@ def parallel_calc_measure_dict(Nk, m, mea, StateName, label_list, meas_path, Run
     # --------------------------------------------- #
     #   loading label_part & calc measurement_dict  #
     # --------------------------------------------- #
-    #cmd = 'ls {}/ml_labels*'.format(meas_path)
-    #os.system(cmd)
 
-    #Run_measure = 1
     t_parallel = Run_measurement_dict(Nk, mea, StateName, meas_path, Run_measure)
-
-    #print(' measurement_outALL = {}'.format(measurement_outALL))
 
     return t_parallel, num_cpus, label_part
 
@@ -355,8 +327,6 @@ def compare_direct_and_exact(Nk, m, mea, StateName, label_list, mea_method, Pj_m
 
     projector_list = [projector_dict_list[label] for label in sorted(label_list)]
 
-    #ym = Amea(projector_list, target_density_matrix, m, 2**Nk) * np.sqrt(m/2**Nk)
-    #print(' ym = {}'.format(ym))
 
 def Pure_state_measure(params_setup, label_list, measure_method=3, Run_measure=1):
     """ generation of measurement data for the pure state
@@ -392,7 +362,6 @@ def Pure_state_measure(params_setup, label_list, measure_method=3, Run_measure=1
 
         measurement_dict, data_dict_list, backend = \
             state_measure(mea, label_list, input_S)
-        #print('measurement_dict = {} \n'.format(measurement_dict))
 
         parallel = 0
         if len(label_list) > 5000:
@@ -403,10 +372,7 @@ def Pure_state_measure(params_setup, label_list, measure_method=3, Run_measure=1
         #   save measurement_dict  in  xxx_qiskit.dat         #
         # --------------------------------------------------- #
 
-        #state_measure_save(Dir, params_setup, label_list, 
         state_measure_save(meas_path, params_setup, label_list, measurement_dict, 
-#        state_measure_save(meas_path, params_setup, label_list, 
-#                measurement_dict, data_dict_list, backend,
                 input_S, target_density_matrix, rho)
 
         tt2 = time.time()
@@ -425,14 +391,9 @@ def Pure_state_measure(params_setup, label_list, measure_method=3, Run_measure=1
     #                   &    projectors  -->  exact   measurement_list    #
     # ------------------------------------------------------------------- #
 
-    #compare_direct_and_exact(Nk, m, mea, StateName, label_list, mea_method, Pj_method, \
-    #                    meas_path, proj_path)
-
     return t_parallel, num_cpus
 
 
-#def Get_measurement_by_labels(params_setup, label_list, New_Pj_shot, StVer, \
-#            T_rec, measure_method = 3):
 def Get_measurement_by_labels(params_setup, label_list, T_rec):
     """to obtain the measurement results (the coefficients of each Pauli operator)
     from the given label_list corresponding to the sampled Pauli operators 
@@ -458,35 +419,21 @@ def Get_measurement_by_labels(params_setup, label_list, T_rec):
     tm0 = time.time()
 
     Nk         = params_setup['n']
-    #m          = params_setup['num_labels']
-    #mea        = params_setup['num_shots']
     StateName  = params_setup['StateName']
-    #Nr         = params_setup['Nr']
-    #Dir0       = params_setup['Dir0']
-    #Dir        = params_setup['Dir']
     DirRho     = params_setup['DirRho']
-    #proj_path  = params_setup['projector_store_path']
     meas_path  = params_setup['measurement_store_path']
-    #Pj_method  = params_setup['Pj_method']
     mea_method = params_setup['mea_method']
 
     Gen_New_Meas = params_setup['Gen New Measure']   # control parameter for obtaining measurements
-    #New_Pj_shot    = params_setup['New_Pj_shot']
     measure_method = params_setup['measure_method'] 
-    #StVer          = params_setup['StVer']
 
     if Gen_New_Meas == 1:        # create new measurement
-    #if New_Pj_shot[1] == 1:     #  do qiskit -> do shot measurement
         print('  ********   starting to DO measurement (qiskit or qutip)  ************** \n')
 
         if StateName == 'rand' or StateName == 'KapRnd':
 
             target_density_matrix, rho = Gen_randM(params_setup, DirRho)
-            #target_density_matrix, rho = Gen_randM(Nk, StateName, Nr, StVer, DirRho)
             input_S = None
-            #print('   Dir0   = {}'.format(Dir0))
-            #print('   StVer  = {}'.format(StVer))
-            #print('    rho   = {}'.format(rho))
 
             s_label, yProj, zN, yProj_Exact = \
                 state_S_coef(params_setup, target_density_matrix, rho)
@@ -510,7 +457,6 @@ def Get_measurement_by_labels(params_setup, label_list, T_rec):
             num_cpus = 1
 
     elif Gen_New_Meas == 0:           #  to load measurement_list from  file
-    #elif New_Pj_shot[1] == 0:           #  to load measurement_list from  file
 
         if StateName == 'rand' or StateName == 'KapRnd':
 
@@ -527,9 +473,6 @@ def Get_measurement_by_labels(params_setup, label_list, T_rec):
 
             with open(Fname1, 'rb') as f:
                 yProj_Exact, zN, yProj, Noise, labels, params_setup, target_density_matrix, rho = pickle.load(f)
-
-            #with open(Fname2, 'rb') as f:
-            #    labels, yProj, zN = pickle.load(f)
             
             input_S = None
 
@@ -555,7 +498,6 @@ def Get_measurement_by_labels(params_setup, label_list, T_rec):
 
 
     elif Gen_New_Meas == 2:     #  
-    #elif New_Pj_shot[1] == 2:   #  to load measurement_dict from  xxx_qiskit.dat
 
         if measure_method == 3:
             num_cpus, label_part = split_label_4_measure(label_list)
@@ -563,10 +505,8 @@ def Get_measurement_by_labels(params_setup, label_list, T_rec):
             print('   ********    start combining data_dict  [ Ncpu = {} ] -->  to do measurement_list    *****\n'.format(num_cpus))
 
             measurement_outALL = combine_data_dict_Calc_Mlist(num_cpus, meas_path)   #  combine data_dict  &  calc measurement_list
-            #print('  -------   measurement_outputALL  = {}\n'.format(measurement_outALL))
 
     elif Gen_New_Meas == -1:           #  to load measurement_dict from  xxx_qiskit.dat
-    #elif New_Pj_shot[1] == -1:           #  to load measurement_dict from  xxx_qiskit.dat
         # ---------------------------------------------------------- #
         #   to download measurement data from qiskit recorded data   #
         #           measurement                                      #

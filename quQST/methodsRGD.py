@@ -337,6 +337,13 @@ class LoopRGD:
 			self.wm_sqrt = np.ones(self.num_labels)			#  each element is squred rooted
 
 	def Load_Init(self, Ld):
+		""" to load state vector decomposition (U, s, V) from file
+			for the RGD optimization initialization
+
+		Args:
+			Ld (str): specification how to load the data from file
+
+		"""
 
 		F_X0 = '{}/X0.pickle'.format(self.meas_path)
 		with open(F_X0, 'rb') as f:
@@ -589,9 +596,19 @@ class BasicWorkerRGD(WorkerParm, LoopRGD):
 
 
 	def Amea_tr1(self, proj_list, XX):
-		"""	proj_list = worker.projector_list
-		Qdim =      2** Nk        =  worker.num_elements
-		m    = worker.num_labels  =  len( worker.label_list )
+		""" to get the coefficients of the sampled Pauli operator including the identity matrix
+		in the basis expansion of density matrix XX
+
+		Args:
+			proj_list (list): list of all sampled Pauli operators
+					supposed to be worker.projector_list
+			XX (ndarray): matrix representing the density matrix
+
+		Returns:
+			ndarray: (yml) array representing the coefficients for each sampled Pauli operator
+							in the basis expansion of the density matrix XX
+			float  : (y0) coefficient of the identity in the basis expansion 
+							of the density matrix XX
 		"""
 
 		yMea = [np.dot(proj_list[ii].matrix.data, \
@@ -600,7 +617,6 @@ class BasicWorkerRGD(WorkerParm, LoopRGD):
 		yml = self.yml_sc * np.array(yMea)
 		
 		y0   = np.trace(XX).real / np.sqrt(self.num_elements)
-
 
 		return  yml, y0
 
