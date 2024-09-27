@@ -629,7 +629,7 @@ if __name__ == "__main__":
     Pj_method = 1               #   the method to save | load  projectors
     mea_method = 1              #   the method to save | load  measurement_dict (count_dict) 
 
-    measure_method = 3          #  = 1: direct label_list,  = 3: parallel cpu
+    measure_method = 1          #  = 1: direct label_list,  = 3: parallel cpu
 
     # ----------------------------------------------------- #
     #   version parameter for  Projectors & measurement     #

@@ -1,8 +1,12 @@
 # self defined ignore
 old/*.py
 quQST/old/*.py
+quQST/testData
 Load_workers.py
 *.txt
+test_*.py
+main_*test.py
+DataTest
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

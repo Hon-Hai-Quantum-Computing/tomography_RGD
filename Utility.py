@@ -14,8 +14,8 @@ warnings.filterwarnings("ignore")
 sys.path.append('./quQST')
 
 import projectors
-#import states
-import qibo_states
+import states
+#import qibo_states
 import measurements
 import methodsRGD
 

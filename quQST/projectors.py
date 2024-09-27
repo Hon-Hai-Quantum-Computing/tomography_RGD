@@ -146,7 +146,7 @@ def build_projector_fast(label, label_format='big_endian'):
     #print(j_coords)
     #print(entries)
     projector  = sparse.coo_matrix((entries, (i_coords, j_coords)), 
-                                                     shape=(d, d), dtype=np.complex)
+                                                     shape=(d, d), dtype=complex)
     return projector
 # XXX Here for redundancy and convenience: has also been added to a separate Projector class
 
@@ -206,7 +206,7 @@ class Projector:
         dtype    = data['value_type']
         
         matrix  = sparse.coo_matrix((entries, (i_coords, j_coords)), 
-                                    shape=(d, d), dtype=np.complex)
+                                    shape=(d, d), dtype=complex)
         self.matrix     = matrix
         self.csr_matrix = None
 
@@ -230,7 +230,7 @@ class Projector:
     
         i_coords, j_coords, entries = zip(*ijv)
         matrix  = sparse.coo_matrix((entries, (i_coords, j_coords)), 
-                                    shape=(d, d), dtype=np.complex)
+                                    shape=(d, d), dtype=complex)
         self.matrix     = matrix
         self.csr_matrix = None
 
@@ -851,4 +851,19 @@ class ProjectorStore:
         return projector_dict
 
 
+if __name__ == '__main__':
 
+    #label = 'YXY'
+
+    m = 5
+    n = 3
+    labels = generate_random_label_list(m, n)
+
+    projector_store_path = './testData'
+    projector_store = ProjectorStore(labels)
+
+    #projector_store.populate(projector_store_path)
+    #process = multiprocessing.Process(target=_pickle_saver, args=(labels[0], projector_store_path)) 
+    #process.start()
+
+    num_cpus, saveP_bulk, Partition_Pj = projector_store.mpPool_map(projector_store_path)

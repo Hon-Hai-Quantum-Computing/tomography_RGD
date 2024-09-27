@@ -6,14 +6,16 @@ import numpy as np
 
 import qibo
 from qibo import gates
+from qibo import quantum_info
 
 #import qiskit
 #from qiskit.tools import outer
 
-#import methods
-#import measurements
-import projectors
 
+#import sys
+#sys.path.append('../')
+#import Utility
+#from Utility import Generate_All_labels
 
 class State:
     def __init__(self, n):
@@ -144,6 +146,7 @@ class State:
     def execute_measurement_circuits(self, labels,
                                      backend   = 'numpy',
                                      num_shots = 100,
+                                     #num_shots = 10000,
                                      label_format='little_endian'):
         '''
         Executes measurement circuits
@@ -273,17 +276,25 @@ if __name__ == '__main__':
     ### Example of creating and running an experiment
     ############################################################
 
-    n = 4
-    labels = projectors.generate_random_label_list(20, n)
+    n = 3
+    #labels = projectors.generate_random_label_list(20, n)
+    labels = ['YXY', 'IXX', 'ZYI', 'XXX', 'YZZ']
+    #labels = ['YZYX', 'ZZIX', 'XXIZ', 'XZIY', 'YXYI', 'ZYYX', 'YXXX', 'IIYY', 'ZIXZ', 'IXXI', 'YZXI', 'ZZYI', 'YZXY', 'XYZI', 'XZXI', 'XZYX', 'YIXI', 'IZYY', 'ZIZX', 'YXXY']
+    #labels = ['IIIX', 'IYIY', 'YYXI', 'ZZYY', 'ZYIX', 'XIII', 'XXZI', 'YXZI', 'IZXX', 'YYIZ', 'XXIY', 'XXZY', 'ZZIY', 'YIYX', 'YYZZ', 'YZXZ', 'YZYZ', 'ZXYY', 'IXIZ', 'XZII']
+    #labels = Generate_All_labels(n)
 
-    state   = GHZState(n)
+
+    #state   = GHZState(n)
     #state   = HadamardState(n)
-    #state   = RandomState(n)
-
-    #print(state.get_state_vector())
+    state   = RandomState(n)
 
     state.create_circuit()
     data_dict_list = state.execute_measurement_circuits(labels)
     #print(data_dict_list)
 
-            
+    target_density_matrix = state.get_state_matrix()
+    target_state          = state.get_state_vector()            
+    #print(state.get_state_vector())
+
+    Nr = 3
+    random_DM = quantum_info.random_density_matrix(2**n, Nr)
