@@ -337,6 +337,13 @@ class LoopRGD:
 			self.wm_sqrt = np.ones(self.num_labels)			#  each element is squred rooted
 
 	def Load_Init(self, Ld):
+		""" to load state vector decomposition (U, s, V) from file
+			for the RGD optimization initialization
+
+		Args:
+			Ld (str): specification how to load the data from file
+
+		"""
 
 		F_X0 = '{}/X0.pickle'.format(self.meas_path)
 		with open(F_X0, 'rb') as f:
@@ -368,7 +375,7 @@ class LoopRGD:
 		'''
 		Basic workflow of gradient descent iteration.
 		1. randomly initializes state dnesity matrix.
-		2. makes a step (defined differently for each "Worker" class below) until 
+		2. mapkes a step (defined differently for each "Worker" class below) until 
 		   convergence criterion is satisfied. 
 
 			Md_tr = 0,  the usual RGD algorithm, i.e. sampling all S
@@ -524,8 +531,6 @@ class LoopRGD:
 #from methods_GetParam import WorkerParm
 from methods_ParmBasic import BasicParameterInfo
 
-#class BasicWorkerRGD(methods_GetParam.WorkerParm, LoopRGD):
-#class BasicWorkerRGD(WorkerParm, LoopRGD):
 class BasicWorkerRGD(LoopRGD):
 	'''
 	Basic worker class. Implements MiFGD, which performs
@@ -533,12 +538,8 @@ class BasicWorkerRGD(LoopRGD):
 	(where UU^* = rho = density matrix)
 	'''
 	def __init__(self,
-#				 params_dict, input_S):
 				 params_dict):
 		
-		#process_idx   = 0
-		#num_processes = 1
-
 		#methods_GetParam.WorkerParm.__init__(self,
 		#WorkerParm.__init__(self,
 		#				process_idx,
@@ -594,9 +595,19 @@ class BasicWorkerRGD(LoopRGD):
 
 
 	def Amea_tr1(self, proj_list, XX):
-		"""	proj_list = worker.projector_list
-		Qdim =      2** Nk        =  worker.num_elements
-		m    = worker.num_labels  =  len( worker.label_list )
+		""" to get the coefficients of the sampled Pauli operator including the identity matrix
+		in the basis expansion of density matrix XX
+
+		Args:
+			proj_list (list): list of all sampled Pauli operators
+					supposed to be worker.projector_list
+			XX (ndarray): matrix representing the density matrix
+
+		Returns:
+			ndarray: (yml) array representing the coefficients for each sampled Pauli operator
+							in the basis expansion of the density matrix XX
+			float  : (y0) coefficient of the identity in the basis expansion 
+							of the density matrix XX
 		"""
 
 		yMea = [np.dot(proj_list[ii].matrix.data, \
@@ -605,7 +616,6 @@ class BasicWorkerRGD(LoopRGD):
 		yml = self.yml_sc * np.array(yMea)
 		
 		y0   = np.trace(XX).real / np.sqrt(self.num_elements)
-
 
 		return  yml, y0
 
@@ -656,6 +666,16 @@ class BasicWorkerRGD(LoopRGD):
 
 
 	def Pt(self, Gk):
+		""" projection to the tangent space spanned by uk and vk, where
+			uk and vk are the left and right singular vectors of the current predction self.Xk
+
+		Args:
+			Gk (ndarray): a matrix to be projected onto the tangent space
+
+		Returns:
+			ndarray: (PtG) the projected matrix of the input matrix Gk onto the tangent space
+			ndarray: (uGv) uk @ Gk @ vk
+		"""
 
 		uG  = self.ukh @ Gk
 		Gv  = Gk @ self.vk
@@ -670,6 +690,19 @@ class BasicWorkerRGD(LoopRGD):
 
 
 	def Hr_tangentWk(self, Alpha, uGv):
+		""" Hard thresholding Hr(.) of the intermediate matrix Jk
+			according to the 4th step in the RGD algorithm in the paper,
+			and update the SVD of the new predicted self.Xk = Hr(Jk)
+			
+		Args:
+			Alpha (float): the step size in the 2nd  step of the RGD algorithm
+			uGv (ndarray): uk @ Gk @ vk
+
+		Returns:
+			ndarray: (uk) updated left singular vectors of self.Xk
+			ndarray: (sDiag) updated singular values of self.Xk
+			ndarray: (vk) updated right singular vectors of self.Xk
+		"""
 		#print(' Hard thresholding Wk = Hr(Wk) = Xk_updated')
 
 		Nr = self.Nr
@@ -776,6 +809,17 @@ class BasicWorkerRGD(LoopRGD):
 		return uk, sDiag, vk
 
 	def calc_GkV_UGk(self, zm):
+		""" calculate the Gk, PtG, and uGv needed for the RGD algorithm
+
+		Args:
+			zm (ndarray): the input float array for the A^+
+			   	corresponding to coefficients of all sampled Pauli operators		
+
+		Returns:
+			ndarray: (Gk) the matrix from the 1st step of the RGD algorithm	
+			ndarray: (PtG) the Gk projected onto the tangent space
+			ndarray: (uGv) uk @ Gk @ vk 
+		"""
 		#print('  ----------   calc the GkV and UGk  directly  -------------')
 
 		YY = np.zeros(self.projector_list[0].matrix.shape)
@@ -856,28 +900,55 @@ class BasicWorkerRGD(LoopRGD):
 
 
 	def single_projUV_diff_zmP_UV(self, proj, zmP):
+		""" to calculate zmP * proj @ uk
+					and  zmP * proj @ vk
 
-			projU    = proj.dot(self.uk)
-			projV    = proj.dot(self.vk)
+		Args:
+			proj (class): the given Pauli operator object
+			zmP (float): the coefficient corresponding to the given proj
+				needed as input for the A^+ operator
 
-			zm_projV =  zmP *  projV
-			zm_projU =  zmP *  projU
+		Returns:
+			ndarray: (zm_projU) zmP * proj @ uk
+			ndarray: (zm_projV) zmP * proj @ vk
+		"""
 
-			#UprojV   = self.ukh @ projV 	
-			#zm_UpV   =  zmP *  UprojV
+		projU    = proj.dot(self.uk)
+		projV    = proj.dot(self.vk)
 
-			#return zm_projU, zm_projV, zm_UpV
-			return zm_projU, zm_projV
+		zm_projV =  zmP *  projV
+		zm_projU =  zmP *  projU
+
+		#UprojV   = self.ukh @ projV 	
+		#zm_UpV   =  zmP *  UprojV
+
+		#return zm_projU, zm_projV, zm_UpV
+		return zm_projU, zm_projV
 
 	@staticmethod
 	def single_projUV_diff_zmP_Hermitian(proj, uk):
+		""" go obtain proj @ uk
 
-			projU    = proj.dot(uk)
+		Args:
+			proj (class): the given Pauli operator object
+			uk (ndarray): the left singular vector of self.Xk
 
-			return projU
+		Returns:
+			ndarray: (projU) proj @ uk
+		"""
+
+		projU    = proj.dot(uk)
+
+		return projU
 
 
 	def calc_PtG_2_uG_Gv_Hermitian(self):
+		""" to calculate uk @ Gk @ vk  
+			and updated the projection of Gk onto the tangent space
+
+		Returns:
+			ndarray: (uGv) uk @ Gk @ vk 
+		"""
 
 		Gu  = np.zeros((self.num_elements, self.Nr), dtype=complex)
 
@@ -896,6 +967,12 @@ class BasicWorkerRGD(LoopRGD):
 		return uGv
 
 	def calc_PtG_2_uG_Gv(self):
+		""" to project Gk onto the tangnet space and
+			calculate the related objects
+
+		Returns:
+			ndarray: (uGv) uk@ Gk @ vk
+		"""
 
 		#tt0 = time.time()
 

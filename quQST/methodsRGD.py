@@ -202,7 +202,7 @@ class LoopRGD:
 
 	def A_dagger_vec(self, vec):
 
-		Xu  = np.zeros((self.num_elements, vec.shape[1]), dtype=np.complex)
+		Xu  = np.zeros((self.num_elements, vec.shape[1]), dtype=complex)
 		for yP, proj in zip(self.yIni, self.projector_list):
 			Xu += yP * proj.dot(vec)
 		Xu *= self.coef
@@ -211,7 +211,7 @@ class LoopRGD:
 
 	def A_dagger_ym_vec(self, zm, vec):
 
-		Xu  = np.zeros((self.num_elements, vec.shape[1]), dtype=np.complex)
+		Xu  = np.zeros((self.num_elements, vec.shape[1]), dtype=complex)
 		for yP, proj in zip(zm, self.projector_list):
 			Xu += yP * proj.dot(vec)
 		#Xu *= self.coef
@@ -337,6 +337,13 @@ class LoopRGD:
 			self.wm_sqrt = np.ones(self.num_labels)			#  each element is squred rooted
 
 	def Load_Init(self, Ld):
+		""" to load state vector decomposition (U, s, V) from file
+			for the RGD optimization initialization
+
+		Args:
+			Ld (str): specification how to load the data from file
+
+		"""
 
 		F_X0 = '{}/X0.pickle'.format(self.meas_path)
 		with open(F_X0, 'rb') as f:
@@ -589,9 +596,19 @@ class BasicWorkerRGD(WorkerParm, LoopRGD):
 
 
 	def Amea_tr1(self, proj_list, XX):
-		"""	proj_list = worker.projector_list
-		Qdim =      2** Nk        =  worker.num_elements
-		m    = worker.num_labels  =  len( worker.label_list )
+		""" to get the coefficients of the sampled Pauli operator including the identity matrix
+		in the basis expansion of density matrix XX
+
+		Args:
+			proj_list (list): list of all sampled Pauli operators
+					supposed to be worker.projector_list
+			XX (ndarray): matrix representing the density matrix
+
+		Returns:
+			ndarray: (yml) array representing the coefficients for each sampled Pauli operator
+							in the basis expansion of the density matrix XX
+			float  : (y0) coefficient of the identity in the basis expansion 
+							of the density matrix XX
 		"""
 
 		yMea = [np.dot(proj_list[ii].matrix.data, \
@@ -600,7 +617,6 @@ class BasicWorkerRGD(WorkerParm, LoopRGD):
 		yml = self.yml_sc * np.array(yMea)
 		
 		y0   = np.trace(XX).real / np.sqrt(self.num_elements)
-
 
 		return  yml, y0
 
@@ -874,7 +890,7 @@ class BasicWorkerRGD(WorkerParm, LoopRGD):
 
 	def calc_PtG_2_uG_Gv_Hermitian(self):
 
-		Gu  = np.zeros((self.num_elements, self.Nr), dtype=np.complex)
+		Gu  = np.zeros((self.num_elements, self.Nr), dtype=complex)
 
 		for proj, zmP in zip(*[self.projector_list, self.zm]):
 
@@ -894,7 +910,7 @@ class BasicWorkerRGD(WorkerParm, LoopRGD):
 
 		#tt0 = time.time()
 
-		Gu  = np.zeros((self.num_elements, self.Nr), dtype=np.complex)
+		Gu  = np.zeros((self.num_elements, self.Nr), dtype=complex)
 
 		if self.EigV_positive  == 1:			#  U = V
 
@@ -958,8 +974,8 @@ class BasicWorkerRGD(WorkerParm, LoopRGD):
 				#self.zm_Rec = np.array(self.zm_Rec) * self.coef
 
 		else:														#  U   !=   V
-			Gv  = np.zeros(self.vk.shape, dtype=np.complex)
-			#uGv = np.zeros((self.Nr, self.Nr), dtype=np.complex) 
+			Gv  = np.zeros(self.vk.shape, dtype=complex)
+			#uGv = np.zeros((self.Nr, self.Nr), dtype=complex) 
 
 			#zm_List = []
 			#for zmP, ymP, proj in zip(zm, self.measurement_list, self.projector_list):

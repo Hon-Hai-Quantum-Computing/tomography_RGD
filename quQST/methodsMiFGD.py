@@ -24,9 +24,11 @@ class LoopMiFGD:
 
 
 	def Rnd_stateU(self):
-		'''
-		Random initialization of the state density matrix.
-		'''
+		""" Random initialization of U for the state density matrix.
+
+		Returns:
+			ndarray: the generated random initial U for the state density matrix
+		"""
 
 		print('self.seed = {}'.format(self.seed))
 
@@ -227,6 +229,14 @@ class LoopMiFGD:
 		#print('state_norm    = {}'.format(state_norm))
 
 	def Load_Init(self, Ld):
+		""" to load state vector decomposition from file for MiFGD initialization
+
+		Args:
+			Ld (str): specification how to load the data from file
+
+		Returns:
+			ndarray: D * rank matrix representing state vector
+		"""
 
 		F_X0 = '{}/X0.pickle'.format(self.meas_path)
 		print(' F_X0  = {}'.format(F_X0))
@@ -256,12 +266,18 @@ class LoopMiFGD:
 
 
 	def compute(self, InitX=0, Ld=0):
-		'''
+		""" do the MiFGD optimization method
+
 		Basic workflow of gradient descent iteration.
 		1. randomly initializes state dnesity matrix.
 		2. makes a step (defined differently for each "Worker" class below) until 
 		   convergence criterion is satisfied. 
-		'''
+
+		Args:
+			InitX (int, optional): choice of different initialization. Defaults to 0.
+			Ld (str, optional): specification how to load the data from file. Defaults to 0.
+
+		"""
 
 		self.InitX            = InitX
 		self.step_Time        = {}
@@ -439,6 +455,12 @@ class BasicWorker(WorkerParm, LoopMiFGD):
 	def __init__(self,
 #				 params_dict, input_S):
 				 params_dict):
+		""" initialization step for optimzation: to load all the sampled Pauli 
+		    operators and measurement results
+
+		Args:
+			params_dict (dict): dictionary of parameters
+		"""
 		
 		process_idx   = 0
 		num_processes = 1
@@ -523,9 +545,9 @@ class BasicWorker(WorkerParm, LoopMiFGD):
 
 	def projection_diff(self):
 
-		#state_diff = np.zeros(self.num_elements, dtype=np.complex)
-		#stateU_Diff = np.zeros((self.num_elements, self.Nr), dtype=np.complex)
-		stateU_Diff = np.zeros(self.stateU.shape, dtype=np.complex)
+		#state_diff = np.zeros(self.num_elements, dtype=complex)
+		#stateU_Diff = np.zeros((self.num_elements, self.Nr), dtype=complex)
+		stateU_Diff = np.zeros(self.stateU.shape, dtype=complex)
 		
 		for projector, measurement in zip(*[self.projector_list, self.measurement_list]):
 			#state_diff += self.single_projection_diff(projector, measurement, self.momentum_state)

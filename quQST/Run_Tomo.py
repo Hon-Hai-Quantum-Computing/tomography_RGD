@@ -195,6 +195,6 @@ if __name__ == '__main__':
     #Frec_RGD, wc, RunTime = Run_RGD(params_dict, Rpm)
 
     worker = methodsRGD_core.BasicWorkerRGD(params_dict)
-    worker.computeRGD(InitX_RGD, Ch_svd, Md_tr, Md_alp, Md_sig)
-
+    #worker.computeRGD(InitX_RGD, Ch_svd, Md_tr, Md_alp, Md_sig)
+    worker.computeRGD(InitX_RGD, Ch_svd)
 
