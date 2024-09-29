@@ -2,6 +2,7 @@
 old/*.py
 quQST/old/*.py
 quQST/states_qiskit_v013.py
+quQST/testData
 Load_workers.py
 *.txt
 test_*.py

@@ -10,10 +10,9 @@ import qiskit
 from qiskit.quantum_info import Statevector
 from qiskit.providers.basic_provider import BasicSimulator
 
-#import methods
-#import measurements
-#import projectors
-
+#import sys
+#sys.path.append('../')
+#from Utility import Generate_All_labels
 
 class State:
     """ qiskit circuit generator of specified quantum state
@@ -156,6 +155,7 @@ class State:
     def execute_measurement_circuits(self, labels:list[str],
                                      backend   = BasicSimulator(),
                                      num_shots = 100,
+                                     #num_shots = 10000,
                                      label_format='big_endian'):
         """ Executes measurement circuits
 
@@ -282,8 +282,11 @@ class RandomState(State):
                 op_ind = random.randint(0, 1)
             if op_ind == 0: # U3
                 qind = random.randint(0, self.n - 1)
-                circuit.u3(random.random(), random.random(), random.random(),
-                           self.quantum_register[qind])
+                #circuit.u3(random.random(), random.random(), random.random(),
+                #           self.quantum_register[qind])                            # qiskit 0.x
+                circuit.u(random.random(), random.random(), random.random(),
+                           self.quantum_register[qind])                             # qiskit 1.x
+
             elif op_ind == 1: # CX
                 source, target = random.sample(range(self.n), 2)
                 circuit.cx(self.quantum_register[source],
@@ -298,14 +301,23 @@ if __name__ == '__main__':
     ### Example of creating and running an experiment
     ############################################################
 
-    n = 4
-    labels = projectors.generate_random_label_list(20, 4)
+    n = 3
+    #labels = projectors.generate_random_label_list(20, n)
+    labels = ['YXY', 'IXX', 'ZYI', 'XXX', 'YZZ']
+    #labels = ['YZYX', 'ZZIX', 'XXIZ', 'XZIY', 'YXYI', 'ZYYX', 'YXXX', 'IIYY', 'ZIXZ', 'IXXI', 'YZXI', 'ZZYI', 'YZXY', 'XYZI', 'XZXI', 'XZYX', 'YIXI', 'IZYY', 'ZIZX', 'YXXY']
+    #labels = ['IIIX', 'IYIY', 'YYXI', 'ZZYY', 'ZYIX', 'XIII', 'XXZI', 'YXZI', 'IZXX', 'YYIZ', 'XXIY', 'XXZY', 'ZZIY', 'YIYX', 'YYZZ', 'YZXZ', 'YZYZ', 'ZXYY', 'IXIZ', 'XZII']
+    #labels = Generate_All_labels(n)
 
-    state   = GHZState(4)
-    #state   = HadamardState(4)
-    #state   = RandomState(4)
+    #state   = GHZState(n)
+    #state   = HadamardState(n)
+    state   = RandomState(n)
 
+    #
+    # DO the shot measurement
+    #
     state.create_circuit() 
     data_dict_list = state.execute_measurement_circuits(labels)
 
-            
+
+    target_density_matrix = state.get_state_matrix()
+    target_state          = state.get_state_vector()            
