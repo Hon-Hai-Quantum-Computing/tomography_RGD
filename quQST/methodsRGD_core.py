@@ -25,7 +25,6 @@ import pickle
 # --------------------------------- #
 
 #from projectors import Sm_dxd_list
-#import qutip as qu			#   for A_1
 
 #import scipy.sparse as sparse
 import time
@@ -120,6 +119,8 @@ class LoopRGD:
 
 
 	def initialize_yAd(self):
+		""" initialize the initial density matrix for the algorithm
+		"""
 		
 		#print('\n          ******  initial choice following paper choice  ***** ')
 		#self.Id = np.eye(self.num_elements, dtype=complex)  ##  matrix dimension d = num_elements = 2**Nk
@@ -137,7 +138,6 @@ class LoopRGD:
 				#M_alphabetical = self.label_list       ##  order according to listdir
 				#S_fromM = Sm_dxd_list(M_alphabetical)  ##  list of Pauli matrices from M_alphabetical
 				#Xk = A_dag_todense(S_vec_rnd, Nk, y)          #  need  sparse matrix  todense
-				#Xk2 = A_dag_1(S_fromM, self.n, y)              #  S must be full matrixX
 				#self.S  = S_fromM
 
 				#print('  Before A_dagger:  proj_list = {}'.format(hex(id(self.projector_list))))
@@ -201,6 +201,15 @@ class LoopRGD:
 
 
 	def A_dagger_vec(self, vec):
+		""" to obtain A^+(y) @ vec, where y is the input vector for A^dagger operator
+			recorded in self.yIni
+
+		Args:
+			vec (ndarray): a vector which is supposed to be the left singular vector
+
+		Returns:
+			ndarray: Xu = the A^+(y) @ vec
+		"""
 
 		Xu  = np.zeros((self.num_elements, vec.shape[1]), dtype=complex)
 		for yP, proj in zip(self.yIni, self.projector_list):
@@ -210,6 +219,15 @@ class LoopRGD:
 		return Xu
 
 	def A_dagger_ym_vec(self, zm, vec):
+		"""  to obtain A^+(zm) @ vec
+
+		Args:
+			zm (ndarray): the input vector for the A^+ operator
+			vec (ndarray): a vector which is supposed to be the left singular vector
+
+		Returns:
+			ndarray: Xu = the A^+(y) @ vec
+		"""
 
 		Xu  = np.zeros((self.num_elements, vec.shape[1]), dtype=complex)
 		for yP, proj in zip(zm, self.projector_list):
@@ -220,15 +238,23 @@ class LoopRGD:
 
 
 	def rSVD(self, k, s=3, p=12, matrixM_Hermitian=1):
-		"""         randomized SVD
-
-			k   = Nr        # rank parameter
-			s   = 5         # oversampling
-			p   = 5         # power parameter
+		""" randomized SVD
 
 			ref:  https://arxiv.org/pdf/1810.06860.pdf    -->  A ~ QQ* A          (B = Q* A  )
 				with modification:  if Remain_Hermitian   -->  A ~ QQ* A  QQ*     (B = Q* A Q)
+
+		Args:
+			k (int): = Nr        # rank parameter
+			s (int, optional): specify oversampling. Defaults to 3.
+			p (int, optional): specify power parameter. Defaults to 12.
+			matrixM_Hermitian (int, optional): specify the matrix is Hermitian or not. Defaults to 1.
+
+		Returns:
+			ndarray: (u) left singular vectors
+			ndarray: np.diag(s) the diagonal matrix with diagonal elements being s
+			ndarray: (vh) complex conjugate of the right singular vectors
 		"""
+
 		qDs = min(k + s, self.num_elements)    # k + s small dimension for Q 
 
 		#Omega =np.random.RandomState().randn(M.shape[1], 1)
@@ -285,6 +311,15 @@ class LoopRGD:
 
 
 	def check_Hermitian_x_y(self, x, y, Hermitian_criteria=1e-13):
+		""" to check wheter x and y are the same,
+			where x and y are supposed to be the left and right singular vectors
+			if x = y, then the original SVDed matrix is Hermitian
+
+		Args:
+			x (ndarray): the 1st vector to compare, supposed to be the left singular vector
+			y (ndarray): the 2nd vector to compare, supposed to be the right singular vector
+			Hermitian_criteria (float, optional): the numerical error minimum criteria. Defaults to 1e-13.
+		"""
 
 		#if LA.norm(x - y) < Hermitian_criteria:
 		if np.allclose(x, y):
@@ -310,6 +345,11 @@ class LoopRGD:
 
 
 	def Get_measured_y(self, Md_tr=0):
+		""" to get the coefficients of all sampled Pauli operators for the A^+ operator
+
+		Args:
+			Md_tr (int, optional): Method if including trace = 1 or not. Defaults to 0.
+		"""
 
 		if Md_tr==0:
 			coef = np.sqrt(self.num_elements/self.num_labels)
@@ -372,16 +412,22 @@ class LoopRGD:
 
 
 	def computeRGD(self, InitX, Ch_svd=0, Md_tr=0, Md_alp = 0, Md_sig=0, Ld=0):
-		'''
-		Basic workflow of gradient descent iteration.
-		1. randomly initializes state dnesity matrix.
+		"""	Basic workflow of gradient descent iteration.
+
+		1. initializes state dnesity matrix.
 		2. mapkes a step (defined differently for each "Worker" class below) until 
 		   convergence criterion is satisfied. 
 
-			Md_tr = 0,  the usual RGD algorithm, i.e. sampling all S
-				  = 1,  to enforce coef for Identiy, i.e. not sampling Identity
-		'''
-
+		Args:
+			InitX (int): choice of the initial matrix
+			Ch_svd (int, optional): _description_. Defaults to 0.
+			Md_tr (int, optional): Method if including trace = 1. Defaults to 0.
+					Md_tr = 0,  the usual RGD algorithm, i.e. sampling all S
+						  = 1,  to enforce coef for Identiy, i.e. not sampling Identity
+			Md_alp (int, optional): method for scaling alpha. Defaults to 0.
+			Md_sig (int, optional): method for scaling singular value. Defaults to 0.
+			Ld (str, optional): specification how to load the data from file. Defaults to 0.
+		"""
 		#self.Id = np.eye(self.num_elements, dtype=complex)  ##  matrix dimension d = num_elements = 2**Nk
 
 		self.InitX  = InitX
@@ -539,6 +585,11 @@ class BasicWorkerRGD(LoopRGD):
 	'''
 	def __init__(self,
 				 params_dict):
+		""" the initialization of setting up the parameters for the optimizer
+
+		Args:
+			params_dict (dict): dictionary of parameters
+		"""
 		
 		#methods_GetParam.WorkerParm.__init__(self,
 		#WorkerParm.__init__(self,
@@ -554,9 +605,13 @@ class BasicWorkerRGD(LoopRGD):
 
 
 	def Amea_selfP(self, XX):
-		"""	proj_list = worker.projector_list
-		Qdim =      2** Nk        =  worker.num_elements
-		m    = worker.num_labels  =  len( worker.label_list )
+		""" do the sampling operator A(.) on the input matrix XX
+
+		Args:
+			XX (ndarray): the input matrix
+
+		Returns:
+			ndarray: the result of the sampling operator A(XX)
 		"""
 
 		#yMea = [np.dot(self.projector_list[ii].matrix.data, \
@@ -582,9 +637,14 @@ class BasicWorkerRGD(LoopRGD):
 		return  self.coef * yMea
 	
 	def Amea(self, proj_list, XX):
-		"""	proj_list = worker.projector_list
-		Qdim =      2** Nk        =  worker.num_elements
-		m    = worker.num_labels  =  len( worker.label_list )
+		""" the implementation of the sampling operator A	
+
+		Args:
+			proj_list (list): list of Pauli matrix operators
+			XX (ndarray): the input matrix
+
+		Returns:
+			ndarray: the final result of the sampling operator A
 		"""
 
 		yMea = [np.dot(proj_list[ii].matrix.data, \
@@ -621,6 +681,14 @@ class BasicWorkerRGD(LoopRGD):
 
 
 	def A_dagger(self, ym):
+		""" the implementation of A^+ (A dagger) operator
+
+		Args:
+			ym (ndarray): the input vector as the coefficient array for the Pauli matrices
+
+		Returns:
+			ndarray: the matrix output of A_dagger operator
+		"""
 		#tt1 = time.time()
 
     	# fastest method
@@ -648,7 +716,18 @@ class BasicWorkerRGD(LoopRGD):
 		return  self.coef * YY
 
 	def A_dagger_tr1(self, proj_list, ym, y0):
-		"""	add the constraint for Identity
+		""" the implementation of A^+ (A dagger) operator,
+			similar to the function A_dagger 
+			but with the identity matrix inherently included,
+			i.e. adding the constraint for Identity 
+
+		Args:
+			proj_list (list): list of Pauli operator matrices
+			ym (ndarray): the input vector as the coefficient array for the Pauli matrices
+			y0 (float): the cofficient in front of the identity matrix
+
+		Returns:
+			ndarray: the matrix output of A_dagger operator
 		"""
     	# fastest method
     	#YY = np.zeros(worker.projector_list[0].matrix.shape)
@@ -1189,6 +1268,8 @@ class BasicWorkerRGD(LoopRGD):
 		return Alpha
 
 	def zm_from_Amea(self):
+		""" the sampling operator A(.)
+		"""
 
 		if self.Md_tr == 0:
 			Axk = self.Amea_selfP(self.Xk)  ##  1st quickest 
@@ -1215,6 +1296,8 @@ class BasicWorkerRGD(LoopRGD):
 
 
 	def stepRGD(self):
+		""" each iteration step of the RGD algorithm
+		"""
 
 		self.Xk_old = self.Xk
 		self.uk_old = self.uk	
@@ -1365,10 +1448,16 @@ def density_matrix_diff_norm(xstate, ystate):
 # -------------------------------------------------------------------- #
 
 def Amea(proj_list, XX, m, coef):
-	"""	proj_list = worker.projector_list
+	""" the implementation of the sampling operator A	
 
-	Qdim =      2** Nk        =  worker.num_elements
-	m    = worker.num_labels  =  len( worker.label_list )
+	Args:
+		proj_list (list): list of Pauli matrix operators
+		XX (ndarray): the input matrix
+		m (int): = self.num_labels = the number of sampled Pauli matrices
+		coef (float): the value of scaling for the final result
+
+	Returns:
+		ndarray: the final result of the sampling operator A
 	"""
 
 	# method 1 (using sparse matrix, also slower than qutip
@@ -1400,19 +1489,19 @@ def Amea(proj_list, XX, m, coef):
 	#return  np.sqrt(Qdim/m) * np.array(yMea)
 	return coef * yMea
 
-def A_1(S, Nk,m, rho):
-    # S random set
-    # rho density op
-
-    return np.sqrt(2 ** Nk) / np.sqrt(m) * np.asarray([qu.expect(op, rho) for op in S])
-
-
-def A_dagger2(proj_list, ym, m, Nk):			#  slower than  A_dagger
-
-	YY = sum([ym[kk]* proj_list[kk].matrix for kk in range(m)])
-	return  np.sqrt(2 ** Nk) / np.sqrt(m) * YY
 
 def A_dagger(proj_list, ym, m, Nk):
+	""" the implementation of A^+ (A dagger) operator
+
+	Args:
+		proj_list (list): list of Pauli operator matrices
+		ym (ndarray): the input vector as the coefficient array for the Pauli matrices
+		m (int): the number of sampled Pauli operators
+		Nk (int): the value of qubit number
+
+	Returns:
+		ndarray: the matrix output of A_dagger operator
+	"""
 
 	#tt1 = time.time()
 
@@ -1442,29 +1531,30 @@ def A_dagger(proj_list, ym, m, Nk):
 	return  np.sqrt(2 ** Nk) / np.sqrt(m) * YY
 
 
-def A_dag_1(S, Nk, y):
-    ans = S[0] * y[0]
-    for i in range(1, len(S)):
-        ans += S[i] * y[i]
-
-    #return ans * np.sqrt(2 ** Nk) / np.sqrt(len(y))
-    return np.array(ans) * np.sqrt(2 ** Nk) / np.sqrt(len(y))
-
-
 def Compare_2_SVD(u1, s1, v1h, u2, s2, v2h): 
+	""" compare two SVD results and see if they are equal or not
 
-		print('    s1 = {}, s2 = {}, diff = {}'.format(s1, s2, s1-s2))
-		print('    np.allclose(u1,  u2)  = {}'.format(np.allclose(Col_flip_sign(u1), Col_flip_sign(u2))))
+	Args:
+		u1 (ndarray): the left singular vector of the 1st SVD result
+		s1 (ndarray): the diagnoal matrix of the singular values of the 1st SVD result
+		v1h (ndarray): the complex conjugate of the right singular vector of the 1st SVD result
+		u2 (ndarray): the left singular vector of the 2nd SVD result
+		s2 (ndarray): the diagnoal matrix of the singular values of the 2nd SVD result
+		v2h (ndarray): the complex conjugate of the right singular vector of the 2nd SVD result
+	"""
 
-		print('    np.allclose(vkh, v5h) = {}'.format(np.allclose(Row_flip_sign(v1h), Row_flip_sign(v2h))))
-		print('    np.allclose(vk,  v5)  = {}'.format(np.allclose(Col_flip_sign(v1h.T.conj()),  Col_flip_sign(v2h.T.conj()))))
+	print('    s1 = {}, s2 = {}, diff = {}'.format(s1, s2, s1-s2))
+	print('    np.allclose(u1,  u2)  = {}'.format(np.allclose(Col_flip_sign(u1), Col_flip_sign(u2))))
 
-		print('    np.allclose(xR1,  xR2)  = {}'.format(np.allclose( u1 @ s1 @ v1h,  u2 @ s2 @ v2h )))
+	print('    np.allclose(vkh, v5h) = {}'.format(np.allclose(Row_flip_sign(v1h), Row_flip_sign(v2h))))
+	print('    np.allclose(vk,  v5)  = {}'.format(np.allclose(Col_flip_sign(v1h.T.conj()),  Col_flip_sign(v2h.T.conj()))))
 
-		print('   u1  - u2  = {}'.format( LA.norm(u1  - u2)))
-		print('   v1h - v2h = {}'.format( LA.norm(v1h - v2h)))
-		print('   XR1 - XR2 = {}'.format( LA.norm(u1 @ s1 @ v1h - u2 @ s2 @ v2h)))
-		print(' --------------------------------------------------------------------- ')
+	print('    np.allclose(xR1,  xR2)  = {}'.format(np.allclose( u1 @ s1 @ v1h,  u2 @ s2 @ v2h )))
+
+	print('   u1  - u2  = {}'.format( LA.norm(u1  - u2)))
+	print('   v1h - v2h = {}'.format( LA.norm(v1h - v2h)))
+	print('   XR1 - XR2 = {}'.format( LA.norm(u1 @ s1 @ v1h - u2 @ s2 @ v2h)))
+	print(' --------------------------------------------------------------------- ')
 
 
 def rSVD(M, k, s=5, p=5):
@@ -1517,34 +1607,55 @@ def rSVD(M, k, s=5, p=5):
 
 
 def Row_flip_sign(yRow):
+	""" to change the sign of each row
+		such that the largest element of each row is positive.
+		
+	Args:
+		yRow (ndarray): the input row vector
+
+	Returns:
+		ndarray: the updated yRow vector
+	"""
 
 	#print(' ----------------------------------------------- ')
 
-    if yRow.shape[0] >  yRow.shape[1]:
-        print('  ***   ERROR: This is a colum, not a row   ***')
-        return 
+	if yRow.shape[0] >  yRow.shape[1]:
+		print('  ***   ERROR: This is a colum, not a row   ***')
+		return 
     
-    ID_max_abs1 = np.argmax(np.abs( yRow), axis=1)
-    ID_max_abs2 = [np.argmax(np.abs( yRow[ii, :]))  for ii in range(yRow.shape[0])]
-    sign = np.sign([yRow[ii, ID_max_abs1[ii]] for ii in range(yRow.shape[0])])
+	ID_max_abs1 = np.argmax(np.abs( yRow), axis=1)
+	ID_max_abs2 = [np.argmax(np.abs( yRow[ii, :]))  for ii in range(yRow.shape[0])]
+	sign = np.sign([yRow[ii, ID_max_abs1[ii]] for ii in range(yRow.shape[0])])
 
-    #print('       yRow  = {}'.format(yRow))
+	#print('       yRow  = {}'.format(yRow))
 
-    #yy = np.multiply( sign, yRow)   #  ValueError: operands could not be broadcast together with shapes (2,) (2,10) 
-    yRow = [ sn*yr for sn, yr in zip(sign, yRow)]
-    yRow = np.array(yRow)
+	#yy = np.multiply( sign, yRow)   #  ValueError: operands could not be broadcast together with shapes (2,) (2,10) 
+	yRow = [ sn*yr for sn, yr in zip(sign, yRow)]
+	yRow = np.array(yRow)
 
-    #print('       yRow.shape = {}'.format(yRow.shape))
-    #print('       sign.shape = {}'.format(sign.shape))
-    #print('       sign       = {}'.format(sign))
-    #print('       yRow  = {}'.format(yRow))
-    #print('  -------------------------------------------- \n')
+	#print('       yRow.shape = {}'.format(yRow.shape))
+	#print('       sign.shape = {}'.format(sign.shape))
+	#print('       sign       = {}'.format(sign))
+	#print('       yRow  = {}'.format(yRow))
+	#print('  -------------------------------------------- \n')
 
-    return yRow
+	return yRow
 
 
 
 def Col_flip_sign(xCol):
+	""" to change the sign of each column 
+		such that the largest element of each column is positive.
+	
+		The purpose of this function is for comparison, such as that will be 
+		used in check_Hermitian_x_y
+
+	Args:
+		xCol (ndarray): the input column vector
+	
+	Returns:
+		ndarray: the update xCol with sign changed
+	"""
     #ID_max_abs = np.argmax(np.abs( xCol))
     #sign = np.sign(xCol[ID_max_abs])
 
@@ -1571,51 +1682,77 @@ def Col_flip_sign(xCol):
 
 
 def power_Largest_EigV(M, criteria = 1e-15, seed=0):
+	""" use the power method to obtain the largest eigenvalue and eigenvector
 
-    converged = 0    
-    InitV  = np.ones((M.shape[1], 1))
+	Args:
+		M (ndarray): the input matrix
+		criteria (float, optional): stopping criteria of the power method. 
+			Defaults to 1e-15.
+		seed (int, optional): random seed parameter. Defaults to 0.
 
-    for init_cnt in range(5):
-        InitV  = InitV / LA.norm(InitV)
-        Vinput = InitV
+	if converged:
+		Returns:
+			float: (lam_pseudo) the largest eigenvalue
+			ndarray: (Mv) the eigen vector of the largest eigenvalue
+			int: (ii) the number of iterations for convergence
+	"""
 
-        for ii in range(500):
-            Mv = M @ Vinput
-            lam_pseudo = LA.norm(Mv)        
-            Mv /= lam_pseudo
+	converged = 0    
+	InitV  = np.ones((M.shape[1], 1))
+
+	for init_cnt in range(5):
+		InitV  = InitV / LA.norm(InitV)
+		Vinput = InitV
+
+		for ii in range(500):
+			Mv = M @ Vinput
+			lam_pseudo = LA.norm(Mv)        
+			Mv /= lam_pseudo
             
-            #max_abs_col = np.argmax(np.abs(Mv))
-            #Mv *=  np.sign(Mv[max_abs_col])
-            Mv = Col_flip_sign(Mv)
+			#max_abs_col = np.argmax(np.abs(Mv))
+			#Mv *=  np.sign(Mv[max_abs_col])
+			Mv = Col_flip_sign(Mv)
 
-            diff   = LA.norm( Mv - Vinput)
-            Vinput = Mv 
-            print(' {}-th iteration: lambda = {}, diff = {}'.format(ii, lam_pseudo, diff))
-            if diff < criteria:
-                break
+			diff   = LA.norm( Mv - Vinput)
+			Vinput = Mv 
+			print(' {}-th iteration: lambda = {}, diff = {}'.format(ii, lam_pseudo, diff))
+			if diff < criteria:
+				break
 
-        if diff > criteria:
-            print(' *** power method not converged:  diff = {}'.format(diff))
-            print('       Now {}-th init  -->  try another InitV \n'.format(init_cnt))
+		if diff > criteria:
+			print(' *** power method not converged:  diff = {}'.format(diff))
+			print('       Now {}-th init  -->  try another InitV \n'.format(init_cnt))
 
-            #InitV  = np.random.RandomState(seed).randn(M.shape[1], 1)
-            InitV  = np.random.RandomState().randn(M.shape[1], 1)
+			#InitV  = np.random.RandomState(seed).randn(M.shape[1], 1)
+			InitV  = np.random.RandomState().randn(M.shape[1], 1)
 
-            #print('InitV = {}'.format(InitV))
+			#print('InitV = {}'.format(InitV))
 
-        else:
-            print(' ****  Largest EigV  obtained from the power method:  ||Mv- v|| = {}  ***'.format(diff))
-            print('               (at the {}-th initV; {}-th iteration)  \n'.format(init_cnt, ii))
-            converged = 1
-            break
+		else:
+			print(' ****  Largest EigV  obtained from the power method:  ||Mv- v|| = {}  ***'.format(diff))
+			print('               (at the {}-th initV; {}-th iteration)  \n'.format(init_cnt, ii))
+			converged = 1
+			break
 
-    if converged == 0:
-        return
-    elif converged == 1:
-        return lam_pseudo, Mv, ii
+	if converged == 0:
+		return
+	elif converged == 1:
+		return lam_pseudo, Mv, ii
 
 
 def Hr_Hermitian(X, r, Choice=0):
+	""" hard theresholding the matrix X to rank r approximation
+
+	Args:
+		X (ndarray): the input matrix
+		r (int): the target rank for the final approximated matrix 
+		Choice (int, optional): the method of doing SVD. Defaults to 0.
+
+	Returns:
+		ndarray: (u) the final left singular vector
+		ndarray: np.diag(s)[:r, :r] = the matrix with diagonal elements the singular values
+		ndarray: (vh) the complex conjugate of the right singular vector
+	"""
 
 	print('  Choice for Hr_Hermitian = {}\n'.format(Choice))
 
@@ -1640,42 +1777,31 @@ def Hr_Hermitian(X, r, Choice=0):
 	return u, np.diag(s)[:r, :r], vh
 
 
-def hard(X, r):
-    # which first computes the singular value decomposition of a
-    # matrix X and then sets all but the r largest singular values to zero
-    u, s, vh = np.linalg.svd(X, full_matrices=True)
-    v = np.transpose(np.conj(vh))
-
-    u = u[:, :r]        #  only keep the first r columns   (my addition to EnRui's code)
-    v = v[:, :r]        #  only keep the first r columns   (my addition to EnRui's code)
-
-    return u, np.diag(s)[:r, :r], v
-
-
-def Pt(u,v,uh, vh, Gk):
-
-	uG = uh @ Gk
-	Gv = Gk @ v
-	uGv = uG @ v
-
-	PtG = u @ uG + Gv @ vh - u @ (uGv @ vh)
-    
-	return PtG, uGv
-
 def P(u, vh, Gk, rank):
-    #Gk = Gk
+	""" project the matrix Gk to the tangent space
 
-    u = u[:, :rank]
-    v = np.transpose(np.conj(vh))
+	Args:
+		u (ndarray): the left singular vector
+		vh (ndarray): complex conjugate of the right singular vector
+		Gk (ndarray): the input matrix
+		rank (int): the rank of the singular value decomposed matrix
 
-    v = v[:, :rank]
+	Returns:
+		ndarray: the matrix Gk projected to the tangent space
+	"""
+	#Gk = Gk
 
-    U = np.matmul(u, np.transpose(np.conj(u)))
-    V = np.matmul(v, np.transpose(np.conj(v)))
+	u = u[:, :rank]
+	v = np.transpose(np.conj(vh))
 
-    #print('       u.shape = {},  v.shape = {} '.format(u.shape, v.shape))
+	v = v[:, :rank]
 
-    return np.matmul(U, Gk) + np.matmul(Gk, V) - np.matmul(np.matmul(U, Gk), V)
+	U = np.matmul(u, np.transpose(np.conj(u)))
+	V = np.matmul(v, np.transpose(np.conj(v)))
+
+	#print('       u.shape = {},  v.shape = {} '.format(u.shape, v.shape))
+
+	return np.matmul(U, Gk) + np.matmul(Gk, V) - np.matmul(np.matmul(U, Gk), V)
 
 
 def calc_n1_n2(zm, Ai, uk, vk, ukh, vkh, dd, m):

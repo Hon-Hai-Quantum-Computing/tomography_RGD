@@ -7,6 +7,7 @@
 import numpy as np
 import qutip as qu
 
+from BasicTools import Plt_Err_Time
 
 #from states import GHZState, HadamardState, RandomState
 from qibo_states import GHZState, HadamardState, RandomState
@@ -19,11 +20,11 @@ import methodsMiFGD_core
 import measurements
 import projectors
 
-import sys
-sys.path.append('../')
+#import sys
+#sys.path.append('../')
 #import Utility
-from Utility import Generate_All_labels
-
+#from Utility import Generate_All_labels
+from BasicTools import Generate_All_labels
 
 
 if __name__ == '__main__':
@@ -32,12 +33,13 @@ if __name__ == '__main__':
     ### Example of creating and running an experiment
     ############################################################
 
-    n = 3
-    #labels = projectors.generate_random_label_list(20, n)
+    #n = 3;    labels = projectors.generate_random_label_list(50, n)
+    n = 4;    labels = projectors.generate_random_label_list(120, n)
+
     #labels = ['YXY', 'IXX', 'ZYI', 'XXX', 'YZZ']
     #labels = ['YZYX', 'ZZIX', 'XXIZ', 'XZIY', 'YXYI', 'ZYYX', 'YXXX', 'IIYY', 'ZIXZ', 'IXXI', 'YZXI', 'ZZYI', 'YZXY', 'XYZI', 'XZXI', 'XZYX', 'YIXI', 'IZYY', 'ZIZX', 'YXXY']
     #labels = ['IIIX', 'IYIY', 'YYXI', 'ZZYY', 'ZYIX', 'XIII', 'XXZI', 'YXZI', 'IZXX', 'YYIZ', 'XXIY', 'XXZY', 'ZZIY', 'YIYX', 'YYZZ', 'YZXZ', 'YZYZ', 'ZXYY', 'IXIZ', 'XZII']
-    labels = Generate_All_labels(n)
+    #labels = Generate_All_labels(n)
 
     num_labels  = len(labels)
 
@@ -197,4 +199,7 @@ if __name__ == '__main__':
     worker = methodsRGD_core.BasicWorkerRGD(params_dict)
     #worker.computeRGD(InitX_RGD, Ch_svd, Md_tr, Md_alp, Md_sig)
     worker.computeRGD(InitX_RGD, Ch_svd)
+
+
+    Plt_Err_Time(worker)
 

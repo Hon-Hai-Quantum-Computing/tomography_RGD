@@ -2,8 +2,8 @@
 import matplotlib.pyplot as plt
 
 #from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-from mpl_toolkits.axes_grid.inset_locator import (inset_axes, InsetPosition,
-                                                  mark_inset)
+#from mpl_toolkits.axes_grid.inset_locator import (inset_axes, InsetPosition,
+#                                                  mark_inset)
 import numpy as np
 
 from Utility import State_Naming, Params_define
@@ -1098,8 +1098,9 @@ def Data_Info(argv):
     # ----------------------------- #
 
     params_setup = Params_define(Nk, StateName, m, mea, Nr, \
-                Pj_method, mea_method, measure_method, '/stored directory') 
-
+                Pj_method, mea_method, measure_method, '/DataTest') 
+                #Pj_method, mea_method, measure_method, '/stored directory') 
+    
     params_setup = State_Naming(StVer, version, \
                         params_setup, New_Pj_shot)
 
@@ -1233,7 +1234,7 @@ if __name__ == "__main__":
     Nk, m, mea = 10, 314572, 8600       #  for rand ->  mea NOT matter
     #Nk, m, mea = 12, 838860, 8600
 
-    StateName = 'rand'
+    StateName = 'GHZ'
     if StateName == 'rand':
         version = [1, 1, 0]   # [proj version s, measure version, noise model]
         StVer = [1, 0]
@@ -1460,7 +1461,10 @@ if __name__ == "__main__":
         #Nk_m_List = [[6, 819], [8, 13107], [10, 209715], [12, 838860]]     #  [Nk, m] 
 
         #Nk_m_List = [[6, 1228], [8, 13107], [10, 209715], [12, 838860]]     #  [Nk, m]  ==> paper 2023
-        Nk_m_List = [[6, 1228], [8, 13107]]
+        #Nk_m_List = [[6, 1228], [8, 13107]]
+
+        Nk_m_List = [[3, 10]]
+
 
         #Nk_m_List = [[10, 209715]]     #  [Nk, m] 
 
@@ -1492,7 +1496,8 @@ if __name__ == "__main__":
                 StVer = [1, 0]
                 Nr = 3
             else:
-                version = [1, 1, -1]   # [proj version s, measure version, noise model]
+                #version = [1, 1, -1]   # [proj version s, measure version, noise model]
+                version = [1, 2, -1]   # [proj version s, measure version, noise model]
                 StVer = 0
                 Nr = 1
 
