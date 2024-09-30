@@ -90,14 +90,6 @@ class Measurement:
             digit_list[i] = '0'
         effective_key = ''.join(digit_list)
 
-        #print(' *************  parity  ********************')
-        #print(' label           = {}'.format(self.label))
-        #print(' key             = {}'.format(key))
-        #print(' indices         = {}'.format(indices))
-        #print('digit_list       = {}'.format(digit_list))
-        #print('effective_key    = {}'.format(effective_key))
-        #print('effective parity = {}'.format(effective_key.count('1')))
-
         return effective_key.count('1')
 
     def parity(self, key, parity_flavor='effective'):
@@ -147,25 +139,6 @@ class Measurement:
         parity_freq2   = {k : (-1) ** self.parity(k, parity_flavor) * v for k, v in freq2.items()}
         correlation2   = sum(parity_freq2.values())
         data2 = {self.label : correlation2}
-
-        #print(' ------------------------------  ')
-        #print('freq2                   = {}'.format(freq2))
-        #print('parity_freq2            = {}'.format(parity_freq2))
-        #print('parity_freq2.values()   = {}'.format(parity_freq2.values()))
-        #print('correlation2            = {}'.format(correlation2))
-        #print(' ------------------------------  ')
-        #print('parity_flavor           = {}'.format(parity_flavor))
-        #print('beta                    = {}'.format(beta))
-        #print('label                   = {}'.format(self.label))
-        #print('self.count_dict         = {}'.format(self.count_dict))
-        #print('self.count_dict.items() = {}'.format(self.count_dict.items()))
-        #print('num_shots               = {}'.format(num_shots))
-        #print('num_items               = {}'.format(num_items))
-        #print('frequencies             = {}'.format(frequencies))
-        #print('frequencies.items()     = {}'.format(frequencies.items()))
-
-        #print('parity_frequencies      = {}'.format(parity_frequencies))
-        #print('data                    = {}'.format(data))
 
         return data2
         #return data
@@ -386,10 +359,7 @@ def measurement_list_calc_wID(ID, label_list, count_dict_list):
     measurement_list = [measurement_object.get_pauli_correlation_measurement(beta, parity_flavor)[label] for
                             (label, measurement_object) in zip(*[label_list,
                                                                 measurement_object_list])]
-    #print('label_list       = {}'.format(label_list))
-    #print('measurement_list = {}'.format(measurement_list))
-    #return measurement_list
-    #return [ID, measurement_list]
+
     return {ID: measurement_list}
 
 
@@ -514,10 +484,6 @@ class MeasurementStore:
                 mp_collect = []
                 for ii, labels in enumerate(label_part):
                     print('       **************  {}-th label_part to be parallelly calc   *******'.format(ii))
-                    #out = measurement_list_calc_wID(ii, labels, count_dict_part[ii])
-                    #out = measurement_list_calc_wID_wrap([ii, labels, count_dict_part[ii]])
-                    #print('     out = {}\n'.format(out))
-                    #ml_dict.update(out)
 
                     mp_out = pool.apply_async(measurement_list_calc_wID_wrap, ([ii, labels, count_dict_part[ii]], ))
                     mp_collect.append(mp_out)
@@ -536,15 +502,7 @@ class MeasurementStore:
             measurement_list = []
             for xx in ID_list:
                 measurement_list += ml_dict[xx]
-            #print(' ml_dict  = {}\n'.format(ml_dict))
-            #print(' -->  measurement_list  = {}'.format(measurement_list))
 
-        #measurement_list2 = measurement_list_calc(label_list, count_dict_list)
-        #print(' -->  measurement_list2 = {}'.format(measurement_list2))
-        
-        #print(' calc method = {}'.format(method))
-        #print('label_list       = {}'.format(label_list))
-        #print('  calc  -->  measurement_list = {}'.format(measurement_list))
         print('    -------------         DONE of calculating measurment_list       ------------------  \n')
 
         return measurement_list

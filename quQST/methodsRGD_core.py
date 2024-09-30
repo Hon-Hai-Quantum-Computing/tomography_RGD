@@ -13,18 +13,12 @@ import projectors
 #import measurements
 
 
-#import methods_GetParam
-#from importlib import reload
-#reload(methods_GetParam)
-
 import scipy.sparse as sparse
 
 import pickle
 # --------------------------------- #
 #	the origianl RGD package		#
 # --------------------------------- #
-
-#from projectors import Sm_dxd_list
 
 #import scipy.sparse as sparse
 import time
@@ -135,14 +129,6 @@ class LoopRGD:
 			#y = self.yIni 	   ##  this y = coef * measurement_list -> order follows self.label_list
 
 			if self.Md_tr == 0:		#  the normal def of A, i.e. sampling all Pauli
-				#M_alphabetical = self.label_list       ##  order according to listdir
-				#S_fromM = Sm_dxd_list(M_alphabetical)  ##  list of Pauli matrices from M_alphabetical
-				#Xk = A_dag_todense(S_vec_rnd, Nk, y)          #  need  sparse matrix  todense
-				#self.S  = S_fromM
-
-				#print('  Before A_dagger:  proj_list = {}'.format(hex(id(self.projector_list))))
-
-				#Xk = A_dagger(self.projector_list, y, self.num_labels, self.n)
 				Xk = self.A_dagger(self.yIni)					#  1st quickest
 
 			elif self.Md_tr == 1 or self.Md_tr == 2:	#  add constraint on Identity
@@ -156,9 +142,6 @@ class LoopRGD:
 
 			#uk, sDiag, vkh = Hr_Hermitian(Xk, self.Nr)
 			uk, sDiag, vkh = Hr_Hermitian(Xk, self.Nr, self.Ch_svd)		#  Ch_svd =0: full SVD
-
-			#u7, s7, v7h = rSVD(Xk, k=self.Nr, s=3, p=12)				#  randomized-SVD
-			#Compare_2_SVD(uk, sDiag, vkh, u7, s7, v7h)
 
 		elif self.Ch_svd < 0:					#   don't need to compute X0
 
@@ -257,7 +240,6 @@ class LoopRGD:
 
 		qDs = min(k + s, self.num_elements)    # k + s small dimension for Q 
 
-		#Omega =np.random.RandomState().randn(M.shape[1], 1)
 		Omega =np.random.RandomState().randn(self.num_elements, qDs)
 
 		#Mw = M @ Omega
@@ -269,15 +251,11 @@ class LoopRGD:
 		for ii in range(p):
 			tt1 = time.time()
 
-			#ATQ  = M.T.conj() @ Q
-			#ATQ = self.A_dagger_vec(Q)
 			ATQ = self.A_dagger_ym_vec(self.yIni, Q)
 
 			G, R = LA.qr(ATQ)
 			tt2 = time.time()
 
-			#AG   = M @ G
-			#AG   = self.A_dagger_vec(G)
 			AG   = self.A_dagger_ym_vec(self.yIni, G)
 
 			Q, R = LA.qr(AG)        
@@ -465,8 +443,6 @@ class LoopRGD:
 		print('      X0 step (RGD)        -->  time = {}\n'.format(tt2 - tt1))
 
 
-	    #Rec_Fro_diff = [LA.norm(Xk - rho.full())]
-		#self.Target_Err_Xk = [LA.norm(self.Xk - self.target_DM, 'fro')]
 		X0_target_Err = LA.norm(self.Xk - self.target_DM, 'fro')
 		self.Target_Err_Xk.append(X0_target_Err)		  	#  for X0
 		self.InitErr = X0_target_Err
@@ -486,11 +462,6 @@ class LoopRGD:
 		self.sDiag_list     = []
 		self.zm_list        = []			#  = ym  - Axk
 		self.z0_list        = []            #  = yI0 - A0
-
-		#self.Rec_st_Err     = []			#  to record  self.uk - self.uk_old
-
-		##  self.num_iterations  is the original  Nite in RGD
-		#self.StpTol = 1e-15        #  Stopping criteria: tolerance for Frobenius norm
 
 
 		for self.iteration in range(self.num_iterations):
@@ -527,36 +498,16 @@ class LoopRGD:
 			#self.Err_relative_uk.append(ukErrRatio)
 			self.Err_relative_st.append(ukErrRatio)
 
-			#print(' the {}-the iteration -------------------------------'.format(self.iteration))
-			#print('    || self.Xk_old || = {}'.format( LA.norm(self.Xk_old)))
-			#print('    || self.Xk ||     = {}'.format( LA.norm(self.Xk)))
-			#print('    || self.Xk - self.Xk_old || = {}'.format(LA.norm(self.Xk - self.Xk_old)))
-			#print('    XkErrRatio                  = {}'.format(XkErrRatio))
-
 
 			if min(ukErrRatio, XkErrRatio) <= self.relative_error_tolerance:	#  using state or Xk to check convergence
-			#if ukErrRatio <= self.relative_error_tolerance:			#  using state to check convergence
-			#if XkErrRatio <= self.relative_error_tolerance:		#  using 
-			#if XkErrRatio < self.StpTol:
 				self.converged = True
 				self.convergence_iteration = self.iteration
 				print(' *********  XkErrRatio = {} < StpTol   ******'.format(XkErrRatio))
 
 
 			if self.target_DM is not None:
-				#Fro_diff = LA.norm(Xk-rho.full())
-				#Fro_diff = LA.norm(Xk-rho.full(), 'fro')
 				Fro_diff = LA.norm(self.Xk- self.target_DM, 'fro')
-				#Fro_diff = LA.norm(self.Xk- self.target_DM)
 
-
-				#if np.mod(self.iteration, 5) == 4: 
-				#if np.mod(self.iteration, 2) == 1:
-				#	print(' ***** {}-th Frobenius ||Xk-rho||_F = {}'.format(self.iteration, Fro_diff))
-
-				#if Fro_diff < StpTol:
-				#    print('**** {}-th Frobenius norm {} < Tolerance {}'.format(k, Fro_diff, StpTol))
-				#    break
 				if np.isnan(Fro_diff):
 					print(' ********* {}-th Fro_diff = NaN = {}'.format(self.iteration, Fro_diff))
 					#break
@@ -574,7 +525,6 @@ class LoopRGD:
 					raise ValueError("  Target_Err_Xk  too big !!!  Stop and check  \n")
 
 
-#from methods_GetParam import WorkerParm
 from methods_ParmBasic import BasicParameterInfo
 
 class BasicWorkerRGD(LoopRGD):
@@ -590,13 +540,6 @@ class BasicWorkerRGD(LoopRGD):
 		Args:
 			params_dict (dict): dictionary of parameters
 		"""
-		
-		#methods_GetParam.WorkerParm.__init__(self,
-		#WorkerParm.__init__(self,
-		#				process_idx,
-		#				num_processes,
-#						params_dict, input_S)
-		#				params_dict)
 
 		BasicParameterInfo.__init__(self, 
 						params_dict)
@@ -614,11 +557,6 @@ class BasicWorkerRGD(LoopRGD):
 			ndarray: the result of the sampling operator A(XX)
 		"""
 
-		#yMea = [np.dot(self.projector_list[ii].matrix.data, \
-		#    np.asarray(XX[self.projector_list[ii].matrix.col, self.projector_list[ii].matrix.row]).reshape(-1)).real \
-		#	for ii in range(self.num_labels)]  # correct
-
-
 		yMea = np.zeros(self.num_labels)
 		for ii, proj in enumerate(self.projector_list):
 			ProjM = proj.matrix
@@ -627,13 +565,6 @@ class BasicWorkerRGD(LoopRGD):
 			row   = ProjM.row
 			yMea[ii] = np.dot(data, np.asarray(XX[col, row]).reshape(-1)).real
 			
-			#yMea[ii] = np.dot(ProjM.data, np.asarray(XX[ProjM.col, ProjM.row]).reshape(-1)).real
-
-
-		#print('     y Diff = {}'.format(LA.norm(yMea - yMea2)))
-	    #return yCsr, yMea
-    	#return np.array(yMea)
-		#return  np.sqrt(self.num_elements/self.num_labels) * np.array(yMea)
 		return  self.coef * yMea
 	
 	def Amea(self, proj_list, XX):
@@ -696,22 +627,9 @@ class BasicWorkerRGD(LoopRGD):
 		#YY = np.zeros(self.projector_list[0].matrix.shape)
 		YY = np.zeros((self.num_elements, self.num_elements))
 
-		#for ii in range(self.num_labels):
-		#	YY += ym[ii]* proj_list[ii].matrix
 
-		#for ii, proj in enumerate(proj_list):
-		#for ii, proj in enumerate(self.projector_list):
-		#	YY += ym[ii]* proj.matrix
-			#print('  {}-th proj done'.format(ii))
-
-		#for yP, proj in zip(ym, proj_list):
 		for yP, proj in zip(ym, self.projector_list):
 			YY += yP * proj.matrix
-
-		#coef = np.sqrt(self.num_elements / self.num_labels)
-		#tt2 = time.time()
-		#print('       [ self.A_dagger ] -->  time = {}\n'.format(tt2 - tt1))
-		#print('  inside A_dagger:  proj_list = {}'.format(hex(id(proj_list))))
 
 		return  self.coef * YY
 

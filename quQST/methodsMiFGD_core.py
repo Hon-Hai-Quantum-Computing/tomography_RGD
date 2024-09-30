@@ -109,8 +109,6 @@ class LoopMiFGD:
 			trAUU = np.trace(np.dot(stateU.T.conj(), projU)).real
 
 			Amea1[ii] = trAUU - measurement
-			#Amea2[ii] = np.trace(projector.matrix @ZZ0).real - measurement
-			#print(ii, measurement)
 
 		AAz = self.A_dagger_InputZ(Amea1)
 		nAA = LA.norm(AAz)
@@ -118,10 +116,6 @@ class LoopMiFGD:
 		DeNom = 11/10 * nZ0 + nAA
 		etaTh = 1/(4*DeNom)
 
-		#print(' nZ0 = {}, nAA = {}'.format(nZ0, nAA))
-		#print(' DeNom = {}, etaTh = {}'.format(DeNom, etaTh))
-
-		#self.ZZ0     = ZZ0
 		self.AmeaZZ0 = Amea1 
 		
 		self.etaTh = etaTh

@@ -67,9 +67,6 @@ def generate_random_label_list(size,
 
         ## the essence of 'set' is that 'set does not contain repeated elements'
         labels = list(set([generate_random_label(n, symbols) for i in range(effective_size)]))
-        #labels = list([generate_random_label(n, symbols) for i in range(effective_size)])
-        
-        #print('{}, {}, {}'.format(factor, effective_size, labels))
 
         while(len(labels) < size):
             #print(' ***  increasing length  ***')
@@ -582,14 +579,6 @@ class ProjectorStore:
         if self.size > bulksize:
             method = 0      #  = 0  for label_part
 
-            #label_part = []
-            #bs = 0
-            #while bs < self.size:
-            #    print(bs)
-            #    label_part.append(self.labels[bs: bs+bulksize])
-            #    bs += bulksize
-            #print('  bs ={}, label_part = {}'.format(bs, label_part))            
-
             numB = int(np.ceil(self.size/bulksize))
 
             label_part = [self.labels[ii*bulksize: (ii+1)*bulksize] \
@@ -901,11 +890,6 @@ class ProjectorStore:
             num_leading_symbols = len(aname)
         else:
             num_leading_symbols = 0
-
-        #print(' -----------  ProjectorStore.load  ----------------')
-        #print('names = {}'.format(names))    
-        #print('apath = {}'.format(apath))
-        #print('num_leading_symbols = {}'.format(num_leading_symbols))
 
         # load the store
         projectors = [Projector.load(path, label, num_leading_symbols) for label in labels]
