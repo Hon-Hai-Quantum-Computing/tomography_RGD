@@ -1158,6 +1158,17 @@ class BasicWorkerRGD(LoopRGD):
 
 
 	def calc_n1_n2_direct_Gk(self, zm, z0):
+		""" calculate the necessary matrices in the RGD algorithm
+
+		Args:
+			zm (ndarray): coefficient array for the sampled Pauli matrices in the sampling operator A
+			z0 (float): coefficient for the identify operator
+
+		Returns:
+			ndarray: (Gk) the matrix obtained in the 1st step of the RGD algorithm 
+			ndarray: (uGv) u @ Gk @ v
+			ndarray: (PtGk) Gk projected onto the tangent space
+		"""
 			
 		# ------------------------------------------------- #
 		#	  calc of Gk = A^+ (zm), where zm = y-Axk		#
