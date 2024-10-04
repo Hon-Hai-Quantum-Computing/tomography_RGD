@@ -7,8 +7,6 @@ from scipy.linalg import interpolative as interp
 #from mpi4py import MPI
 from qiskit.quantum_info import state_fidelity
 
-#import projectors
-#import measurements
 import time
 
 import pickle
@@ -52,9 +50,6 @@ class LoopMiFGD:
 			state_norm = np.linalg.norm(state)
 			state      = state / state_norm
 
-			#print(' xx = {}, state = \n {}'.format(xx, state))
-			#print(' -----------------------------')
-
 			stateU.append(state)
 
 		stateU = np.array(stateU).T
@@ -65,19 +60,21 @@ class LoopMiFGD:
 
 
 	def est_Estimation_specNrm(self, stateU):
+		""" estimate the spectral norm
+
+		Args:
+			stateU (ndarray): state vector representing a state
+		"""
 		ZZ0 =  stateU @ stateU.T.conj()
 		nZ0_specN = interp.estimate_spectral_norm(ZZ0)
 
 		Amea1 = np.zeros(self.num_labels)
-		#Amea2 = np.zeros(self.num_labels)
 		cnt   = np.arange(self.num_labels)
 		for ii, projector, measurement in zip(*[cnt, self.projector_list, self.measurement_list]):
 			projU = projector.dot(stateU)
 			trAUU = np.trace(np.dot(stateU.T.conj(), projU)).real
 
 			Amea1[ii] = trAUU - measurement
-			#Amea2[ii] = np.trace(projector.matrix @ZZ0).real - measurement
-			#print(ii, measurement)
 
 		AAz = self.A_dagger_InputZ(Amea1)
 		nAA_specN = interp.estimate_spectral_norm(AAz)
@@ -85,10 +82,6 @@ class LoopMiFGD:
 		DeNom_SN = 11/10 * nZ0_specN + nAA_specN
 		etaSpecN = 1/(4*DeNom_SN)
 
-		#print(' nZ0 = {}, nAA = {}'.format(nZ0, nAA))
-		#print(' DeNom = {}, etaTh = {}'.format(DeNom, etaTh))
-
-		#self.ZZ0     = ZZ0
 		self.AmeaZZ0 = Amea1 
 		
 		self.etaSpecN   = etaSpecN

@@ -86,14 +86,6 @@ class LoopRGD:
 
 		X0 = stateIni @  self.sDiag  @  self.vkh
 
-		#print('stateIni = {}'.format(stateIni))
-		#print('stateIni.shape = {}'.format(stateIni.shape))
-		#print('initial setting sDiag = {}'.format(ss))
-		#print(' diag(ss) = {}'.format(np.diag(ss)))
-
-		#self.Xk = np.outer(state, state.T.conj())
-		#X0 = np.outer(state, state.T.conj())
-
 		self.u0    = stateIni
 		self.v0    = stateIni
 		self.s0    = np.diag(ss)
@@ -102,14 +94,6 @@ class LoopRGD:
 		self.Xk    = X0
 
 		self.check_Hermitian_x_y(self.uk, self.vk)
-
-
-		#self.state = state
-		#self.uk = np.reshape(state, (self.num_elements, 1))
-		#self.vk = np.reshape(state, (self.num_elements, 1))
-		#self.ukh = self.uk.T.conj()
-		#self.vkh = np.transpose(np.conj(self.vk))
-		#self.sDiag = np.ones((1,1))
 
 
 	def initialize_yAd(self):
@@ -139,8 +123,6 @@ class LoopRGD:
 			print(' self.A_dagger done  -->  time = {}'.format(tt2-tt1))
 			print(' Initial SVD -->  choice = {}'.format(self.Ch_svd))
 
-
-			#uk, sDiag, vkh = Hr_Hermitian(Xk, self.Nr)
 			uk, sDiag, vkh = Hr_Hermitian(Xk, self.Nr, self.Ch_svd)		#  Ch_svd =0: full SVD
 
 		elif self.Ch_svd < 0:					#   don't need to compute X0
@@ -318,7 +300,6 @@ class LoopRGD:
 		self.EigV_pm_List.append(self.EigV_positive)
 		self.Hermitian_List.append(self.Remain_Hermitian)
 
-		#print('            Hermitian ? -->  norm(x - y)  = {}  -->  Remain_Hermitian = {}'.format(LA.norm(x - y), self.Remain_Hermitian))
 		print('            Hermitian ?    Remain_Hermiain = {},    EigV_postive = {}'.format(self.Remain_Hermitian, self.EigV_positive))
 
 
@@ -331,7 +312,6 @@ class LoopRGD:
 
 		if Md_tr==0:
 			coef = np.sqrt(self.num_elements/self.num_labels)
-			#self.yIni = np.array([coef * ele for ele in self.measurement_list])
 			self.yIni = np.array(self.measurement_list) * coef
 			self.coef = coef
 
@@ -447,14 +427,11 @@ class LoopRGD:
 		self.Target_Err_Xk.append(X0_target_Err)		  	#  for X0
 		self.InitErr = X0_target_Err
 
-		#print('\n          Init Frobenius ||X0-rho||_F = {} \n'.format(self.InitErr))
 		print('      X0                   -->  Tr(X0)     = {}\n'.format(np.trace(self.X0)))		
 		print('      X0                   -->  Target Err = {}\n'.format(X0_target_Err))		
 		print('    RGD max num_iterations = {}\n'.format(self.num_iterations))
 
 
-		#self.Err_relative_Xk = []             # the first [LA.norm(Xk) / LA.norm(Xk)] = 1
-		#self.Err_relative_st = []             # the first [LA.norm(uk) / LA.norm(uk)] = 1
 		self.uGv_list       = []
 		self.Rec_Alpha      = []
 		self.Alpha_sc		= []
@@ -484,8 +461,6 @@ class LoopRGD:
 			
 			XkErrRatio = LA.norm(self.Xk - self.Xk_old) / LA.norm(self.Xk_old)
 
-			#ukErrRatio = LA.norm(self.uk - self.uk_old) / LA.norm(self.uk_old)
-			#xx = min(LA.norm(self.uk - self.uk_old), LA.norm(self.uk + self.uk_old) )
 			xx =  LA.norm( Col_flip_sign(self.uk) - Col_flip_sign(self.uk_old))
 
 			ukErrRatio = xx / LA.norm(self.uk_old)
@@ -495,7 +470,6 @@ class LoopRGD:
 			#self.Rec_st_Err.append( LA.norm(self.uk - self.uk_old) )
 			self.Err_relative_Xk.append(XkErrRatio)
 
-			#self.Err_relative_uk.append(ukErrRatio)
 			self.Err_relative_st.append(ukErrRatio)
 
 
@@ -620,11 +594,6 @@ class BasicWorkerRGD(LoopRGD):
 		Returns:
 			ndarray: the matrix output of A_dagger operator
 		"""
-		#tt1 = time.time()
-
-    	# fastest method
-    	#YY = np.zeros(worker.projector_list[0].matrix.shape)
-		#YY = np.zeros(self.projector_list[0].matrix.shape)
 		YY = np.zeros((self.num_elements, self.num_elements))
 
 
@@ -648,7 +617,6 @@ class BasicWorkerRGD(LoopRGD):
 			ndarray: the matrix output of A_dagger operator
 		"""
     	# fastest method
-    	#YY = np.zeros(worker.projector_list[0].matrix.shape)
 		YY = np.zeros(proj_list[0].matrix.shape)
 
 		for ii in range(self.num_labels):
@@ -657,7 +625,6 @@ class BasicWorkerRGD(LoopRGD):
 		coef = self.yml_sc
 
 		Y0 = self.projI.matrix * ( y0 / np.sqrt(self.num_elements) )
-		#print(Y0)
 
 		return  coef * YY + Y0
 
@@ -700,7 +667,6 @@ class BasicWorkerRGD(LoopRGD):
 			ndarray: (sDiag) updated singular values of self.Xk
 			ndarray: (vk) updated right singular vectors of self.Xk
 		"""
-		#print(' Hard thresholding Wk = Hr(Wk) = Xk_updated')
 
 		Nr = self.Nr
 
@@ -711,8 +677,6 @@ class BasicWorkerRGD(LoopRGD):
 		for ii_sc in range(max_scaling_time):
 			print('    ************  {}-th scaling for the Alpha'.format(ii_sc))
 
-			#D2s = np.matmul(self.uk[:, :Nr].T.conj(), scaleGk) @ self.vk[:, :Nr] + self.sDiag; #print(D2s.shape)
-			#uGv = np.matmul(self.uk[:, :Nr].T.conj(), Gk) @ self.vk[:, :Nr]		# from arg input
 			D2s = Alpha * uGv  + self.sDiag
 
 			if self.EigV_positive  == 1:					#  Hermitian  &   all EigVal > 0
@@ -733,9 +697,6 @@ class BasicWorkerRGD(LoopRGD):
 				U2r = np.concatenate((self.uk[:, :Nr], q2[:,:Nr]), axis=1); #print("U2r shape = {}".format(U2r.shape))
 				V2r = np.concatenate((self.vk[:, :Nr], q1[:,:Nr]), axis=1); #print("V2r shape = {}".format(V2r.shape))
 
-				#print('U2r.shape = {}'.format(U2r.shape))
-				#print('V2r.shape = {}'.format(V2r.shape))
-
 				D2s = np.concatenate((D2s, r1[:Nr, :Nr].T.conj()), axis=1); #print(D2s.shape)
 
 
@@ -745,16 +706,8 @@ class BasicWorkerRGD(LoopRGD):
 			print('          D2s - D2s.T.conj() = {}'.format(LA.norm( D2s - D2s.T.conj())))
 			print('          np.allclose(D2s, D2s.T.conj()) = {}\n'.format(np.allclose(D2s, D2s.T.conj())))
 
-			#print('       uGv  = {}'.format(uGv))
-			#print('       D2s + D2s.T.conj()  = {}'.format(D2s + D2s.T.conj()))
-			#print('       D2s - D2s.T.conj()  = {}'.format(D2s - D2s.T.conj()))
-
-
 			if np.allclose(D2s, D2s.T.conj()) == True:
 				Mu2r, s2r, Mv2rh = LA.svd(D2s, full_matrices=True, hermitian=True)
-
-				#EigVal, EigVec = LA.eig(D2s)
-				#print('  EigVal = {}'.format(EigVal))
 
 			else:									#  not Hermitian   
 				Mu2r, s2r, Mv2rh = LA.svd(D2s, full_matrices=True)
@@ -763,8 +716,6 @@ class BasicWorkerRGD(LoopRGD):
 			Mu2r_Nr = Mu2r[:, :Nr]
 			Mv2r_Nr = Mv2rh[:Nr, :].T.conj()
 
-			#print('   Mu2r_Nr = {}'.format(Mu2r_Nr))
-			#print('   Mv2r_Nr = {}'.format(Mv2r_Nr))
 			print('        s2r       = {}'.format(s2r))
 			print('        max(s2r)  = {}'.format(max(s2r)))
 			if max(s2r) < 1:
@@ -781,25 +732,18 @@ class BasicWorkerRGD(LoopRGD):
 		# --------------------------------------------------------- #
 
 		sDiag = np.diag(s2r[:Nr])
-		#print('       s2r = {},  sDiag = {}'.format(s2r, sDiag))
 
 		if self.EigV_positive == 1:					#  original  U = V
-			#print(' U2r, (Mu2r, Mv2r)  --> (uk, vk)')
 		
 			uk = U2r.dot( Mu2r_Nr)
 			vk = U2r.dot( Mv2r_Nr)					#  since may   Mu2r_Nr  !=  Mv2r_Nr
-			#vk = uk
 
 		else:										#  original  U  !=  V
-			#print(' (U2r, V2r), (Mu2r, Mv2r)  --> (uk, vk)')
 
 			uk = U2r.dot( Mu2r_Nr )
 			vk = V2r.dot( Mv2r_Nr )
-			#vkh = Mv2rh.dot( V2r.T.conj()); print("k={}, vkh.shape = {}".format(k, vkh.shape))
-
 			
 		self.check_Hermitian_x_y(uk, vk)
-		#print('  error of Hermitian = LA.norm(uk - vk) = {}'.format(LA.norm(uk - vk)))
 		print('         error of Hermitian = LA.norm(|uk| - |vk|) = {}'.format(LA.norm(Col_flip_sign(uk) - Col_flip_sign(vk))))
 
 
@@ -817,7 +761,6 @@ class BasicWorkerRGD(LoopRGD):
 			ndarray: (PtG) the Gk projected onto the tangent space
 			ndarray: (uGv) uk @ Gk @ vk 
 		"""
-		#print('  ----------   calc the GkV and UGk  directly  -------------')
 
 		YY = np.zeros(self.projector_list[0].matrix.shape)
 
@@ -847,31 +790,15 @@ class BasicWorkerRGD(LoopRGD):
 			#Uproj   = proj.dot(self.uk).T.conj()
 			projU    = proj.dot(self.uk)
 
-			#projV  = projU
-			#UprojV = self.ukh @ projU 
 
 			zmP = measurement - np.trace( self.sDiag @ self.vkh @ projU ).real		# quikcer
 
-			#zmP = measurement - np.trace(projU @ self.sDiag @ self.vkh).real		# slow
-			#zmP = measurement - np.dot(proj.matrix.data, np.asarray(self.Xk[proj.matrix.col, proj.matrix.row]).reshape(-1)).real  
-			#zmP =  measurement - np.sum([ self.sDiag[ii,ii] * (self.ukh[ii, proj.matrix.row] @ \
-		   	#			np.multiply(proj.matrix.data.reshape(-1,1), self.uk[proj.matrix.col, ii])) \
-		   	#			for ii in range(self.Nr)]).real
-
-			#print(' zmP = {}, zmP1 = {}, diff = {}'.format(zmP, zmP1, zmP1-zmP))
-
-
 			zm_projU =  zmP *  projU
-			#zm_UpV   =  zmP *  UprojV
 
-			#self.zm_Rec.append(zmP)
-
-			#return zm_projU, zm_UpV
 			return zm_projU
 
 		else:										#   U   !=   V
 
-			#Uproj   = proj.dot(self.uk).T.conj()
 			projU    = proj.dot(self.uk)
 
 			projV  = proj.dot(self.vk)
@@ -883,17 +810,6 @@ class BasicWorkerRGD(LoopRGD):
 			zm_UpV   =  zmP *  UprojV
 
 			return zm_projU, zm_projV, zm_UpV
-
-		#tr2a = np.trace(projV.T.conj() @ self.uk @ self.sDiag).real 
-
-		#tt3 = time.time()
-		#tr3a = sum([ self.sDiag[ii, ii] * (self.vkh[ii, :] @ projU[:, ii])[0, 0]  for ii in range(self.Nr) ]).real
-		#tr3b = sum([ self.sDiag[ii, ii] * (projV.T.conj()[ii,:] @ self.uk[:, ii])[0, 0] for ii in range(self.Nr)]).real
-		#tr3c = sum([ self.sDiag[ii, ii] * (projV[:,ii].T.conj() @ self.uk[:, ii])[0, 0] for ii in range(self.Nr)]).real
-		#tt4 = time.time()
-
-		#ym_AX = ymP - tr1b
-		#return zm_projU, zm_projV, zm_UpV
 
 
 	def single_projUV_diff_zmP_UV(self, proj, zmP):
@@ -916,10 +832,6 @@ class BasicWorkerRGD(LoopRGD):
 		zm_projV =  zmP *  projV
 		zm_projU =  zmP *  projU
 
-		#UprojV   = self.ukh @ projV 	
-		#zm_UpV   =  zmP *  UprojV
-
-		#return zm_projU, zm_projV, zm_UpV
 		return zm_projU, zm_projV
 
 	@staticmethod
@@ -954,7 +866,6 @@ class BasicWorkerRGD(LoopRGD):
 			projU = self.single_projUV_diff_zmP_Hermitian(proj, self.uk)
 			Gu   +=  zmP * projU
 
-			#Gu   +=  zmP * proj.dot(self.uk)
 
 		self.Gu = self.coef * Gu
 		uGv     = self.ukh @ self.Gu
@@ -971,7 +882,6 @@ class BasicWorkerRGD(LoopRGD):
 			ndarray: (uGv) uk@ Gk @ vk
 		"""
 
-		#tt0 = time.time()
 
 		Gu  = np.zeros((self.num_elements, self.Nr), dtype=complex)
 
@@ -979,100 +889,49 @@ class BasicWorkerRGD(LoopRGD):
 
 			Have_Amea = 1
 			if Have_Amea == 1:
-				#tt1 = time.time()
-
-				#for zmP, proj in zip(self.zm, self.projector_list):
-				#for zmP, proj in zip(*[self.zm, self.projector_list]):
 				for proj, zmP in zip(*[self.projector_list, self.zm]):
-				#for proj, zmP in zip(*[self.projector_list, list(self.zm)]):
-
-					#zm_projU, zm_UpV = self.single_projUV_diff_zmP(proj, zmP)
-					#uGv  +=  zm_UpV
-
-					#zm_projU = self.single_projUV_diff_zmP_Hermitian(proj, self.uk, zmP)
-					#Gu   +=  zm_projU
 
 					projU = self.single_projUV_diff_zmP_Hermitian(proj, self.uk)
 					Gu   +=  zmP * projU
 
-					#Gu   +=  zmP * proj.dot(self.uk)
-
-				#tt2 = time.time()
-
 				self.Gu = self.coef * Gu
-				#uGv     = self.coef * uGv
 				uGv     = self.ukh @ self.Gu
 
 				self.PtGk = self.uk @ self.Gu.T.conj() +  self.Gu @ self.ukh  -  self.uk @ uGv @  self.ukh
 
-				#tt3 = time.time()
-				#print('    calc  Gu             -->  Time = {}'.format(tt2-tt1))
-				#print('    calc  uGv, PtGk      -->  Time = {}'.format(tt3-tt2))
-				#print('    calc  Gu, uGv, PtG   -->  Time = {}'.format(tt3-tt0))
 
 			elif Have_Amea == 0:
 
-				#self.zm_Rec = []
 				for measurement, proj in zip(self.measurement_list, self.projector_list):
-				#for zmP, proj in zip(*[zm, self.projector_list]):
-				#for proj, zmP in zip(*[self.projector_list, zm]):
 
-					#zm_projU, zm_UpV = self.single_projUV_diff(measurement, proj)
 					zm_projU = self.single_projUV_diff(measurement, proj)
 
 					Gu   +=  zm_projU
-					#uGv  +=  zm_UpV
-
-				#self.Gu = (self.coef**2) * Gu
-				#uGv     = (self.coef**2) * uGv
 
 				self.Gu = (self.num_elements / self.num_labels) * Gu
-				#uGv     = (self.num_elements / self.num_labels) * uGv
 				uGv     = self.ukh @ self.Gu
 
 				self.PtGk = self.uk @ self.Gu.T.conj() +  self.Gu @ self.ukh  -  self.uk @ uGv @  self.ukh
-				#GUU = self.Gu @ self.ukh 
-				#self.PtG = GUU.T.conj() +  GUU  -  self.uk @ uGv @  self.ukh
-
-				#self.zm_Rec = np.array(self.zm_Rec) * self.coef
 
 		else:														#  U   !=   V
 			Gv  = np.zeros(self.vk.shape, dtype=complex)
-			#uGv = np.zeros((self.Nr, self.Nr), dtype=complex) 
 
-			#zm_List = []
-			#for zmP, ymP, proj in zip(zm, self.measurement_list, self.projector_list):
-			#for ymP, proj in zip(self.measurement_list, self.projector_list):
 			for zmP, proj in zip(self.zm, self.projector_list):
 
 				zm_projU, zm_projV = self.single_projUV_diff_zmP_UV(proj, zmP)
 
 				Gu   +=  zm_projU
 				Gv   +=  zm_projV
-				#uGv  +=  zm_UpV
 
-			#print(' norm(Gu - Gv) = {}'.format(LA.norm(Gu-Gv)))
 			print(' np.allclose( Col_flip_sign(Gu), Col_flip_sign(Gv) ) = {}'.format(np.allclose(Col_flip_sign(Gu), Col_flip_sign(Gv))))
-
-			#print("  Gu      = {}".format(Gu))
-			#print("  Gv      = {}".format(Gv))
-			#print("  Gu - Gv = {}".format(Gu-Gv))
-			#print("  Gu + Gv = {}".format(Gu+Gv))
-
-			#coef = np.sqrt(self.num_elements / self.num_labels)		#  for zm
-			#coef = (self.num_elements / self.num_labels)			#  for ym_Ax
 
 			self.Gv = self.coef * Gv
 			self.Gu = self.coef * Gu
 			uGv     = self.ukh @  self.Gv
-			#uGv     = self.coef * uGv
 		
 			self.PtGk = self.uk @ self.Gu.T.conj() +  self.Gv @ self.vkh  -  self.uk @ uGv @  self.vkh
 
-		#print('  Inside calc_PtG_2_uG_Gv:   zm  -->  {}'.format(hex(id(zm))))
 		return uGv
-
-
 
 
 	def calc_n1_n2_direct_Gk(self, zm, z0):
@@ -1094,7 +953,6 @@ class BasicWorkerRGD(LoopRGD):
 		tt1 = time.time()
 
 		if self.Md_tr == 0:
-			#Gk = A_dagger(self.projector_list, zm, self.num_labels, self.n)
 			Gk = self.A_dagger(zm)
 
 		elif self.Md_tr == 1:
@@ -1109,8 +967,6 @@ class BasicWorkerRGD(LoopRGD):
 		# --------------------------------- #
 		#			PtGk = P(Gk)			#
 		# --------------------------------- #
-	    #PtGk = P_Tk(Gk, uk, vkh)  # from Pauli_obs_Collection.py, this also works  (project onto the tangent Sp)
-		#PtGk = P(self.uk, self.vkh, Gk, self.Nr)  # from Pauli_qu.py   (project onto the tangent Sp)
 
 		PtGk, uGv = self.Pt(Gk)
 	
@@ -1118,14 +974,9 @@ class BasicWorkerRGD(LoopRGD):
 
 		tt3 = time.time()
 
-		#print('       {}-th [direct Gk]'.format(self.iteration))
-		#print('       [direct Gk] A_dagger  --> time = {}\n'.format(tt2-tt1))
-		#print('       [direct Gk] PtGk      --> time = {}\n'.format(tt3-tt2))
-
 		return Gk, uGv, PtGk
 
 
-	#def calc_n1_n2(self, PtGk):
 	def calc_n1_n2(self):
 		# ----------------------------- #
 		#		calc AptGk = A(PtGk)	#
@@ -1134,8 +985,6 @@ class BasicWorkerRGD(LoopRGD):
 
 		if self.Md_tr == 0:
 			AptGk = Amea(self.projector_list, self.PtGk, self.num_labels, self.coef)	# quickest
-			#AptGk = self.Amea_selfP(self.PtGk)
-			#AptGk = self.Amea(self.projector_list, PtGk)
 
 			n2 = LA.norm(AptGk);    		#print(n2)
 
@@ -1153,9 +1002,6 @@ class BasicWorkerRGD(LoopRGD):
 
 		n1        = LA.norm(self.PtGk);     		#print(n1)
 
-		#print(' n1 = {},  n2 = {}'.format(n1, n2))
-		#print(' tr(Gk) = {}, tr(PtGk) = {}'.format(np.trace(Gk), np.trace(PtGk)))
-
 		print('       [calc_n1_n2] AptGk     -->  time = {}\n'.format(tt2-tt1))
 
 		# --------------------------------- #
@@ -1164,15 +1010,9 @@ class BasicWorkerRGD(LoopRGD):
 		
 		if n1 == 0.0:
 			print("Projected Gradient PtGk norm = n1 = 0 = {}".format(n1))
-			#print("Alpha = {}".format(Alpha))
 			print("  -->  should achieve the minimum | or not successful ??")
-			#print(' is Xk == rho ?  np.allclose(Xk, rho) = {}'.format(np.allclose(Xk, rho.full())))
-			#print(' {}-th Frobenius ||Xk-rho||_F = {}'.format(k, Xk-rho.full()))
-			#break
 			return
-		#print(' *****   to update self.variables  ****')
 
-		#self.Axk = Axk
 		self.n1  = n1					#  not necessary to record
 		self.n2  = n2					#  not necessary to record
 
@@ -1190,10 +1030,6 @@ class BasicWorkerRGD(LoopRGD):
 		elif self.Md_alp == 3:
 			Alpha = min(0.5*Alpha0, 0.8)
 
-		#print('   n1 = {}, n2 = {}, Alpha = {}'.format(n1,n2, Alpha))
-		#print(' n1 = {}, n2 = {}, Alpha0 = {}, Alpha = {}'.format(n1, n2, Alpha0, Alpha))
-
-
 		return Alpha
 
 	def zm_from_Amea(self):
@@ -1202,7 +1038,6 @@ class BasicWorkerRGD(LoopRGD):
 
 		if self.Md_tr == 0:
 			Axk = self.Amea_selfP(self.Xk)  ##  1st quickest 
-			#Axk = self.Amea(self.projector_list, self.Xk) 
 			self.z0 = 0
 		elif self.Md_tr == 1 or self.Md_tr == 2:
 			Axk, A0 = self.Amea_tr1(self.projector_list, self.Xk)
@@ -1210,18 +1045,9 @@ class BasicWorkerRGD(LoopRGD):
 			self.z0 = self.yI0 - A0
 			self.z0_list.append(z0)
 
-			#print('       yIni = {},  y0 = {}'.format(self.yIni, self.yI0))
-			#print('       Axk  = {},  A0 = {}'.format(Axk, A0))
-			#print('       z0  = yI0 - A0 = {}'.format(z0))
-
 		self.zm = self.yIni - Axk	  ## [yIni = coef*measurement_list] order follows self.label_list
 
-		#self.zm_list.append([zm, LA.norm(zm)])
 		self.zm_list.append(LA.norm(self.zm))
-		#print('       zm = yIni - Axk = {}  -->  |zm| = {}'.format(zm, LA.norm(zm)))
-
-		#return zm, z0
-
 
 
 	def stepRGD(self):
@@ -1246,11 +1072,6 @@ class BasicWorkerRGD(LoopRGD):
 		#	calculate (n1, n2)	by direct calculation of Gk		#
 		# ----------------------------------------------------- #
 		
-		#Gk0, uGv0, PtGk0 = self.calc_n1_n2_direct_Gk(zm, z0)		#  1st quickest for (n1, n2)
-		#Gk1, PtG1, uGv1 = self.calc_GkV_UGk(zm)
-		
-		#print('  Before Entering fun:       zm --> {}'.format(hex(id(zm))))
-
 		print(' {}-th step -> self.Remain_Hermitian = {}, self.EigV_positive = {}'.format(self.iteration, self.Remain_Hermitian, self.EigV_positive))
 
 
@@ -1265,17 +1086,12 @@ class BasicWorkerRGD(LoopRGD):
 
 		tp2b = time.time()
 
-		#print('  Amea                        -->  time = {}\n'.format(tt2a - tt1))
 		print('       calc_PtG_2_uG_Gv       -->  time = {}'.format(tp2b - tt2a))
 
 
 		Alpha = self.calc_n1_n2()
-		#tt3b = time.time()
 
 		uk, sDiag, vk = self.Hr_tangentWk(Alpha, uGv)
-
-		#Wk = self.Xk + Alpha* PtGk
-		#tt5 = time.time()
 
 		# --------------------------------------------------------- #
 		#	SOME approaches to scale the singular values or not		#
@@ -1287,7 +1103,6 @@ class BasicWorkerRGD(LoopRGD):
 
 		else:
 			ss_Ary = np.diag(sDiag)
-			#print(' ss_Ary = {}, sum(ss_Ary) = {}'.format(ss_Ary, np.sum(ss_Ary)))
 
 			if self.Md_sig == 1:
 				ratio = 1/ np.sum(ss_Ary)							#  scaling of the sDiag
@@ -1316,14 +1131,9 @@ class BasicWorkerRGD(LoopRGD):
 			self.vkh = np.transpose(np.conj(vk))
 			self.vk  = vk
 
-		#Xk = uk[:, :self.Nr].dot(sDiag) @ vkh[:self.Nr, :]
 		self.Xk = self.uk.dot(self.sDiag) @ self.vkh
 
-		#print('       ratio = {}  ->  tr(Xk) = {}\n'.format(ratio, np.trace(Xk)))
-		#tt6 = time.time()
-
 		self.uGv_list.append(uGv)
-		#self.Rec_Alpha.append(Alpha)		#  to record inside Hr_tangentWk
 
 		self.sDiag_list.append(np.diag(self.sDiag))
 
@@ -1334,13 +1144,6 @@ class BasicWorkerRGD(LoopRGD):
 		self.convergence_check()
 		tt8 = time.time()
 
-		#print('     Gk, Alpha0          -->  time = {}\n'.format(tt3 - tp2))
-		#print('     transpose ukh, vkh  -->  time = {}\n'.format(tt5 - tt4))
-		#print('     Xk calc from u S v  -->  time = {}\n'.format(tt6 - tt5))
-		#print('     calc_n1_n2()        -->  time = {}\n'.format(tt3b- tt3a))
-
-		#print('     Hr_tangentWk        -->  time = {}\n'.format(tt5 - tt3b))
-		#print('     save self.variable  -->  time = {}\n'.format(tt7 - tt5))
 		print('     convergence check   -->  time = {}\n'.format(tt8 - tt7))
 		print('      stepRGD            -->  time = {}\n'.format(tt8 - tt1))
 
@@ -1352,6 +1155,14 @@ class BasicWorkerRGD(LoopRGD):
 ############################################################
 
 def density_matrix_norm(state):
+	""" create density matrix from state
+
+	Args:
+		state (ndarray): state vector
+
+	Returns:
+		float: the norm of the density matrix 
+	"""
 	conj_state = state.conj()
 	norm = np.sqrt(sum([v**2 for v in [np.linalg.norm(state * item)
 									   for item in conj_state]]))
@@ -1359,6 +1170,15 @@ def density_matrix_norm(state):
 
 
 def density_matrix_diff_norm(xstate, ystate):
+	""" compare the difference between the density matrices constructed from xstate and ystate
+
+	Args:
+		xstate (ndarray): 1st state vector
+		ystate (ndarray): 2nd state vector
+
+	Returns:
+		float: the norm of the matrix difference 
+	"""
 	conj_xstate = xstate.conj()
 	conj_ystate = ystate.conj()
 	
@@ -1388,34 +1208,12 @@ def Amea(proj_list, XX, m, coef):
 	Returns:
 		ndarray: the final result of the sampling operator A
 	"""
-
-	# method 1 (using sparse matrix, also slower than qutip
-	#yCsr = [np.trace(sparse.csr_matrix.dot(XX, worker.projector_list[ii].matrix)).real for ii in range(m)]
-
-	# method 2 (quicker: direct access to the element)
-	#yMea = [np.dot(worker.projector_list[ii].matrix.data, XX[worker.projector_list[ii].matrix.col, worker.projector_list[ii].matrix.row]).real \
-	# 							for ii in range(m)]
-
-	#print(XX[proj_list[0].matrix.col, proj_list[0].matrix.row].shape)
-	#print(proj_list[0].matrix.data.shape)
-	#yMea = [np.dot(proj_list[ii].matrix.data, XX[proj_list[ii].matrix.col, proj_list[ii].matrix.row]).real for ii in range(m)]  # correct
-	#   -->   ValueError: shapes (8,) and (1,8) not aligned: 8 (dim 0) != 1 (dim 0)
-
-	#yMea = [np.dot(proj_list[ii].matrix.data, np.asarray(XX[proj_list[ii].matrix.col, proj_list[ii].matrix.row]).reshape(-1)).real for ii in range(m)]  # correct
 	
 	yMea = np.zeros(m)
 	for ii, proj in enumerate(proj_list):
 		ProjM = proj.matrix
-		#col   = ProjM.col
-		#row   = ProjM.row
-		#data  = ProjM.data
-		#yMea[ii] = np.dot(data, np.asarray(XX[col, row]).reshape(-1)).real
 		yMea[ii] = np.dot(ProjM.data, np.asarray(XX[ProjM.col, ProjM.row]).reshape(-1)).real
 
-
-    #return yCsr, yMea
-    #return np.array(yMea)
-	#return  np.sqrt(Qdim/m) * np.array(yMea)
 	return coef * yMea
 
 
@@ -1432,30 +1230,14 @@ def A_dagger(proj_list, ym, m, Nk):
 		ndarray: the matrix output of A_dagger operator
 	"""
 
-	#tt1 = time.time()
-
 	method = 0
-
-    #BB = zip(ym, [worker.projector_list[ii].matrix for ii in range(m)])
-    #QQ1 = sum( map(lambda x: x[0]*x[1], BB) )
-    #QQ2 = sum( map(lambda x: x[0]*x[1], zip(ym, [worker.projector_list[ii].matrix for ii in range(m)])) )
-    #QQ3 = sum( map(lambda x, y: x * y, ym, [worker.projector_list[ii].matrix for ii in range(m)]) )
-
-	#YY = sum( map(lambda x, y: x * y, ym, [proj_list[ii].matrix for ii in range(m)]) )
-	#YY = sum( [ym[ii] * proj_list[ii].matrix for ii in range(m)] )
 
     # fastest method
 	if method == 0:
-	    #YY = np.zeros(worker.projector_list[0].matrix.shape)
 		YY = np.zeros(proj_list[0].matrix.shape)
-		#YY = sparse.coo_matrix(np.zeros(proj_list[0].matrix.shape))  # slow
-		#YY = ym[0] * proj_list[0].matrix							  # slow
 
 		for ii in range(m):
 			YY += ym[ii]* proj_list[ii].matrix
-
-	#tt2 = time.time()
-	#print('       [ A_dagger ] -->  time = {}'.format(tt2- tt1))
 
 	return  np.sqrt(2 ** Nk) / np.sqrt(m) * YY
 
@@ -1498,7 +1280,6 @@ def rSVD(M, k, s=5, p=5):
     """
     qDs = min(k + s, M.shape[1])    # k + s small dimension for Q 
 
-    #Omega =np.random.RandomState().randn(M.shape[1], 1)
     Omega =np.random.RandomState().randn(M.shape[1], qDs)
 
     Mw = M @ Omega
@@ -1546,8 +1327,6 @@ def Row_flip_sign(yRow):
 		ndarray: the updated yRow vector
 	"""
 
-	#print(' ----------------------------------------------- ')
-
 	if yRow.shape[0] >  yRow.shape[1]:
 		print('  ***   ERROR: This is a colum, not a row   ***')
 		return 
@@ -1556,17 +1335,8 @@ def Row_flip_sign(yRow):
 	ID_max_abs2 = [np.argmax(np.abs( yRow[ii, :]))  for ii in range(yRow.shape[0])]
 	sign = np.sign([yRow[ii, ID_max_abs1[ii]] for ii in range(yRow.shape[0])])
 
-	#print('       yRow  = {}'.format(yRow))
-
-	#yy = np.multiply( sign, yRow)   #  ValueError: operands could not be broadcast together with shapes (2,) (2,10) 
 	yRow = [ sn*yr for sn, yr in zip(sign, yRow)]
 	yRow = np.array(yRow)
-
-	#print('       yRow.shape = {}'.format(yRow.shape))
-	#print('       sign.shape = {}'.format(sign.shape))
-	#print('       sign       = {}'.format(sign))
-	#print('       yRow  = {}'.format(yRow))
-	#print('  -------------------------------------------- \n')
 
 	return yRow
 
@@ -1585,10 +1355,6 @@ def Col_flip_sign(xCol):
 	Returns:
 		ndarray: the update xCol with sign changed
 	"""
-    #ID_max_abs = np.argmax(np.abs( xCol))
-    #sign = np.sign(xCol[ID_max_abs])
-
-	#print(' ----------------------------------------------- ')
 
 	if xCol.shape[0] <  xCol.shape[1]:
 		print('  ***   ERROR: This is a row, not a column   ***')
@@ -1597,15 +1363,7 @@ def Col_flip_sign(xCol):
 	ID_max_abs = [np.argmax(np.abs( xCol[:, ii]))  for ii in range(xCol.shape[1])]
 	sign = np.sign([xCol[ID_max_abs[ii], ii] for ii in range(xCol.shape[1])])
 	
-	#print('     xCol.shape = {}'.format(xCol.shape))
-	#print('     sign.shape = {}'.format(sign.shape))
-	#print('     sign       = {}'.format(sign))
-
-	#print('     xCol = {}'.format(xCol[-5:]))
-	#xCol = sign * xCol					#  may have diemsion problem
 	xCol = np.multiply(sign, xCol)
-	#print('     xCol = {}'.format(xCol[-5:]))
-	#print('  ***** ')
 
 	return xCol
 
@@ -1638,8 +1396,6 @@ def power_Largest_EigV(M, criteria = 1e-15, seed=0):
 			lam_pseudo = LA.norm(Mv)        
 			Mv /= lam_pseudo
             
-			#max_abs_col = np.argmax(np.abs(Mv))
-			#Mv *=  np.sign(Mv[max_abs_col])
 			Mv = Col_flip_sign(Mv)
 
 			diff   = LA.norm( Mv - Vinput)
@@ -1652,10 +1408,8 @@ def power_Largest_EigV(M, criteria = 1e-15, seed=0):
 			print(' *** power method not converged:  diff = {}'.format(diff))
 			print('       Now {}-th init  -->  try another InitV \n'.format(init_cnt))
 
-			#InitV  = np.random.RandomState(seed).randn(M.shape[1], 1)
 			InitV  = np.random.RandomState().randn(M.shape[1], 1)
 
-			#print('InitV = {}'.format(InitV))
 
 		else:
 			print(' ****  Largest EigV  obtained from the power method:  ||Mv- v|| = {}  ***'.format(diff))
@@ -1686,11 +1440,7 @@ def Hr_Hermitian(X, r, Choice=0):
 	print('  Choice for Hr_Hermitian = {}\n'.format(Choice))
 
 	if Choice == 0:
-		#u, s, vh = np.linalg.svd(X, hermitian=True)
 		u, s, vh = LA.svd(X, hermitian=True)
-
-		#u  = u[:, :r]		#  only keep the first r columns
-		#vh = vh[:r, :]		#  only keep the first r rows
 
 		u  = np.array(u[:, :r])		#  only keep the first r columns
 		vh = np.array(vh[:r, :])		#  only keep the first r rows
@@ -1728,8 +1478,6 @@ def P(u, vh, Gk, rank):
 	U = np.matmul(u, np.transpose(np.conj(u)))
 	V = np.matmul(v, np.transpose(np.conj(v)))
 
-	#print('       u.shape = {},  v.shape = {} '.format(u.shape, v.shape))
-
 	return np.matmul(U, Gk) + np.matmul(Gk, V) - np.matmul(np.matmul(U, Gk), V)
 
 
@@ -1746,11 +1494,6 @@ def calc_n1_n2(zm, Ai, uk, vk, ukh, vkh, dd, m):
     #       Pi^+ = U^+ * Ai
     #       Fi   = U^+ * Ai * V
     # ---------------------------------------------- # 
-
-    #Ai = [worker.projector_list[ii].matrix for ii in range(m)]
-
-    #zAi = [zm[ii] * worker.projector_list[ii].matrix for ii in range(m)]
-    #zAi = [zm[ii] * Ai[ii] for ii in range(m)]
 
     Pi = [Ai[kk] @ uk for kk in range(m)]	
     Ei = [Ai[kk] @ vk for kk in range(m)]
@@ -1775,8 +1518,6 @@ def calc_n1_n2(zm, Ai, uk, vk, ukh, vkh, dd, m):
     #   -->   need  zPi = zi * Ai @  worker.uk      #
     # --------------------------------------------- #
 
-    #Y1t = PvPerp @ GkU          ## \in (dd,r)
-
     Y1t = vkh @ GkU       ## \in (r, r) | GkU = xx = reduce(lambda x,y: x+y, zPi) \in (dd, r)
     Y1t = GkU - vk @ Y1t  ## \in (dd,r)
 
@@ -1784,8 +1525,6 @@ def calc_n1_n2(zm, Ai, uk, vk, ukh, vkh, dd, m):
     #   calculating Y2t = PuPerp @ Gk @ worker.vk   #
     #   -->   need  zEi = zi * Ai @ worker.vk       #
     # --------------------------------------------- #
-
-    #Y2t = PuPerp @ GkV          ##  \in (dd,r)
 
     Y2t = ukh @ GkV       ##  \in (r, r) | GkV = xx = reduce(lambda x,y: x+y, zEi) \in (dd, r)
     Y2t = GkV - uk @ Y2t  ##  \in (dd,r)
@@ -1808,9 +1547,6 @@ def calc_n1_n2(zm, Ai, uk, vk, ukh, vkh, dd, m):
 
     PzP = [np.trace( UsG @ Pi[ii]) for ii in range(m)]  ## mat \in (r,r)
     EzE = [np.trace(Eis[ii] @ GkV) for ii in range(m)]  ## mat \in (r, r)
-
-    #FzF1 = [-np.trace(Fis[ii] @ UsGV) for ii in range(m)]  # mat \in (r, r)    
-    #AptGk = [sum(ele) for ele in zip(PzP, EzE, FzF1)]
     
     FzF1 = [np.trace(Fis[ii] @ UsGV) for ii in range(m)]  # mat \in (r, r)    
     AptGk = np.array(PzP) + np.array(EzE) - np.array(FzF1)

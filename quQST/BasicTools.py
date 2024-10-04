@@ -11,6 +11,15 @@ import matplotlib.pyplot as plt
 #   to generate all symbols         #
 # --------------------------------- #
 def Generate_All_labels(Nk, symbols = ['I', 'X', 'Y', 'Z']):
+    """ generate all possible labels
+
+    Args:
+        Nk (int): number of qubits
+        symbols (list, optional): the possible choice of each qubit site. Defaults to ['I', 'X', 'Y', 'Z'].
+
+    Returns:
+        list: list of all possible labels
+    """
 
     symList = symbols
 
@@ -22,7 +31,6 @@ def Generate_All_labels(Nk, symbols = ['I', 'X', 'Y', 'Z']):
             sym_Generated = sym_Generated + [''.join([symNow, s]) for s in symbols]
             #print(sym_Generated)   
         symList = sym_Generated
-    #print(symList)
     print('  totol number of labels {}'.format(len(symList)))
 
     return symList
@@ -31,6 +39,11 @@ def Generate_All_labels(Nk, symbols = ['I', 'X', 'Y', 'Z']):
 
 
 def Plt_Err_Time(worker):
+    """ plot the Error w.r.t. optimization run time
+
+    Args:
+        worker (class): the optimization class instance
+    """
 
     Target_Err_Xk = worker.Target_Err_Xk
     step_Time     = worker.step_Time
@@ -55,7 +68,6 @@ def Plt_Err_Time(worker):
 
 
     axNow.set_xlabel('  Run time (sec)', fontsize=14)
-    #axNow.set_ylabel('  $\|| Xk - rho \||_F$')
     axNow.set_ylabel(r'$\left\Vert X_k -\rho \right\Vert_F$', fontsize=14)
 
     axNow.set_title('Error w.r.t. run time', y=1.0, fontsize=14)

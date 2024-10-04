@@ -20,10 +20,7 @@ import methodsMiFGD_core
 import measurements
 import projectors
 
-#import sys
-#sys.path.append('../')
-#import Utility
-#from Utility import Generate_All_labels
+
 from BasicTools import Generate_All_labels
 
 

@@ -8,14 +8,6 @@ import qibo
 from qibo import gates
 from qibo import quantum_info
 
-#import qiskit
-#from qiskit.tools import outer
-
-
-#import sys
-#sys.path.append('../')
-#import Utility
-#from Utility import Generate_All_labels
 
 class State:
     def __init__(self, n):
@@ -26,17 +18,6 @@ class State:
         - classical register: object to hold classical information
         - circuit_name: circuit name; defined in each subclass (GHZState, HadamardState, RandomState)
         '''
-
-        #def A(S, rho):
-        #    # S random set
-        #    # rho density op
-        #    return np.sqrt(2 ** d) / np.sqrt(m) * np.asarray([qu.expect(op, rho) for op in S])
-
-        #quantum_register   = qibo.Circuit(n)
-        #classical_register = qiskit.ClassicalRegister(n, name='cr')
-
-        #self.quantum_register   = quantum_register
-        #self.classical_register = classical_register
     
         self.n = n
         
@@ -97,22 +78,16 @@ class State:
             else:
                 effective_label = label[:]
             probe_circuit = qibo.Circuit(self.n)
-            #probe_circuit = qiskit.QuantumCircuit(self.quantum_register, 
-            #                               self.classical_register, 
-            #                               name=label)
 
             for qubit, letter in zip(*[qubits, effective_label]): 
-                #probe_circuit.barrier(self.quantum_register[qubit])
                 if letter == 'X':
                     probe_circuit.add(gates.H(qubit)) # H
-                    #probe_circuit.u2(0.,       np.pi, self.quantum_register[qubit])  # H
+
                 elif letter == 'Y':
                     probe_circuit.add(gates.S(qubit).dagger()) # S^dg
                     probe_circuit.add(gates.H(qubit))          # H
-                    #probe_circuit.u2(0., 0.5 * np.pi, self.quantum_register[qubit])  # H.S^*
+
             probe_circuit.add(gates.M(*qubits))
-                #probe_circuit.measure(self.quantum_register[qubit], 
-                #                      self.classical_register[qubit])
                 
             measurement_circuit_name = self.make_measurement_circuit_name(self.circuit_name, label)    
             measurement_circuit      = self.circuit + probe_circuit
@@ -159,15 +134,11 @@ class State:
         
         circuit_names = self.measurement_circuit_names
 
-        #backend_engine = qiskit.Aer.get_backend(backend)
         qibo.set_backend(backend)
  
-        #job = qiskit.execute(self.measurement_circuits, backend_engine, shots=num_shots)
-        #result = job.result()
         
         data_dict_list = []
         for i, label in enumerate(labels):
-            #print(self.measurement_circuits[i].draw())
             result = self.measurement_circuits[i].execute(nshots=num_shots)
             result.samples(binary=True, registers=False)
             count_dict = self.sort_sample(result.to_dict()['samples'])
@@ -194,14 +165,10 @@ class GHZState(State):
         
     def create_circuit(self):
         circuit = qibo.Circuit(self.n)        
-        #circuit = qiskit.QuantumCircuit(self.quantum_register, 
-        #                         self.classical_register, 
-        #                         name=self.circuit_name)
 
         circuit.add(gates.H(0))
         for i in range(1, self.n):
             circuit.add(gates.CNOT(0, i))
-            #circuit.cx(self.quantum_register[0], self.quantum_register[i])   
         
         self.circuit = circuit
 
@@ -217,13 +184,9 @@ class HadamardState(State):
         
     def create_circuit(self):
         circuit = qibo.Circuit(self.n) 
-        #circuit = qiskit.QuantumCircuit(self.quantum_register, 
-        #                         self.classical_register, 
-        #                         name=self.circuit_name)
         
         for i in range(self.n):
             circuit.add(gates.H(i))
-            #circuit.h(self.quantum_register[i])   
         
         self.circuit = circuit
 
@@ -243,9 +206,6 @@ class RandomState(State):
     def create_circuit(self):
         random.seed(a=self.seed)
         circuit = qibo.Circuit(self.n)
-        #circuit = qiskit.QuantumCircuit(self.quantum_register, 
-        #                         self.classical_register, 
-        #                         name=self.circuit_name)
 
         for j in range(self.depth):
             if self.n == 1:
@@ -257,15 +217,9 @@ class RandomState(State):
                 circuit.add(gates.U3(qind, 2*np.pi*random.random(),
                                            2*np.pi*random.random(),
                                            2*np.pi*random.random(), trainable=True))
-                #circuit.u3(2*np.pi*random.random(), 
-                #           2*np.pi*random.random(),
-                #           2*np.pi*random.random(),
-                #           self.quantum_register[qind])
             elif op_ind == 1: # CX
                 source, target = random.sample(range(self.n), 2)
                 circuit.add(gates.CNOT(source, target))
-                #circuit.cx(self.quantum_register[source],
-                #           self.quantum_register[target])
         
         self.circuit = circuit
 

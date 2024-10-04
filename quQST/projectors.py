@@ -157,12 +157,6 @@ def build_projector_fast(label, label_format='big_endian'):
     
     i_coords, j_coords, entries = zip(*ijv)
 
-    #print(ij)
-    #print(values)
-    #print(ijv)
-    #print(i_coords)
-    #print(j_coords)
-    #print(entries)
     projector  = sparse.coo_matrix((entries, (i_coords, j_coords)), 
                                                      shape=(d, d), dtype=complex)
     return projector
@@ -201,7 +195,6 @@ def _pickle_saveMap(label):
     Returns:
         object: Projector(label) = the class instance of a Pauli operator
     """
-    #return Projector(label).dict()
     return Projector(label)
 
 ## -------------------------------------------- #
@@ -523,6 +516,16 @@ class ProjectorStore:
 
     @classmethod
     def Load_Pj_part_wrap(cls, argv):
+        """ wrapper of the function Load_Pj_part
+
+        Args:
+            argv (tuple): arguments of the function Load_Pj_part
+
+        Returns:
+            int: (ID_label) the ID number of this Pauli operator chunk
+            list: (label_Pj) the stored labels
+            dir: (Pj_list) the stored Pauli prjectors 
+        """
 
         ID_label, label_Pj, Pj_list = cls.Load_Pj_part(*argv)
 
@@ -744,7 +747,12 @@ class ProjectorStore:
 
     # Load projectors previously saved under a disk folder
     @classmethod
-    def load_PoolMap_bulk_list(cls, path, labels=None):
+    def load_PoolMap_bulk_list(cls, path):
+        """ check if the projector directory exists
+
+        Args:
+            path (str): path to store the projectors
+        """
 
         label_ALL_file = '{}/ALL_labels.pickle'.format(path)
         if os.path.exists(label_ALL_file):
@@ -846,7 +854,6 @@ class ProjectorStore:
                 labels = f.keys()
         else:
             try:
-                #labels = [fname.split('.')[0] for fname in os.listdir(path)]
                 label_load1 = [fname.split('.')[0] for fname in os.listdir(path)]
 
                 label_load2 = [label for label in label_load1 if not label.startswith('Pj_list')]    
@@ -880,7 +887,6 @@ class ProjectorStore:
 
         if labels == None:
             labels = cls.load_labels(path)
-            #print('  labels = {}'.format(labels))
 
         # checking if the store is fragmented and compute num_leading_symbols
         names = os.listdir(path)

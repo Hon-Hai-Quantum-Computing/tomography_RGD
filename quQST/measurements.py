@@ -141,7 +141,7 @@ class Measurement:
         data2 = {self.label : correlation2}
 
         return data2
-        #return data
+
 
     def get_pauli_basis_measurement(self, beta=None):
         """ Generate Pauli basis measurement. 
@@ -318,10 +318,6 @@ def measurement_list_calc_wID_wrap(argv):
     Returns:
         dir: {ID: measurement_list} which is the output of measurement_list_calc_wID
     """
-    #print('       argv = {}'.format(argv))
-
-    #ID, measurement_list = measurement_list_calc_wID(*argv)
-    #return [ID, measurement_list]
 
     out = measurement_list_calc_wID(*argv)
     return out
@@ -348,8 +344,6 @@ def measurement_list_calc_wID(ID, label_list, count_dict_list):
     """
 
     print('      start to calc    {}-th   label_list'.format(ID))
-    #print('      list calc  ID = {}  -->   label_list = {}'.format(ID, label_list))
-    #print('                 data_dict = {}\n'.format(count_dict_list))
 
     parity_flavor='effective'
     beta = None
@@ -437,12 +431,10 @@ class MeasurementStore:
         """
 
         print('    -------------------         start calc measurment_list        ------------------  \n')
-        #print(' label_list = {}\n'.format(label_list))
 
         count_dict_list = [data_dict[label] for label in label_list]
         del data_dict
 
-        #method = 0
 
         if method == 0:
             print('       ****   directly calc & save measurement_list  ')
@@ -459,8 +451,6 @@ class MeasurementStore:
             ID_list         = np.arange(num_CPU)
             label_part      = split_list(label_list, num_CPU)            
             count_dict_part = split_list(count_dict_list, num_CPU)
-            #print('label_part = {}'.format(label_part))
-            #print('count_dict_part = {}'.format(count_dict_part))
 
             del count_dict_list
 
@@ -472,9 +462,7 @@ class MeasurementStore:
                 L_pt = pool.starmap(measurement_list_calc_wID, zip(ID_list, label_part, count_dict_part))
                 pool.close()
                 pool.join()
-                #print('L_pt = {}\n'.format(L_pt))
 
-                #ml_dict = {ID: ml for ID, ml in L_pt}      #  if return  [ID, measurement_list]            
                 ml_dict = {}
                 {ml_dict.update(xx) for xx in L_pt}         #  if return  {ID, measurement_list}
 
@@ -493,10 +481,8 @@ class MeasurementStore:
 
                 for xx in mp_collect:
                     out = xx.get()
-                    #print('     out = {}\n'.format(out))
 
                     ml_dict.update(out)
-                #print(' ml_dict = {}\n'.format(ml_dict))
 
 
             measurement_list = []
@@ -525,11 +511,6 @@ class MeasurementStore:
             list: (measurement_list) list of numbers representing the coefficients corresponding to
                             each Pauli operator
         """
-
-        #print('   *****  Having data_dict  -->  to calc & save measurement_list  ****')
-        #print('   label_list = {}'.format(label_list))
-        #print('   data_dict  = {}\n'.format(data_dict))
-
 
         tt1 = time.time()
         measurement_list = cls.calc_measurement_list(label_list, data_dict, method)
@@ -617,7 +598,6 @@ class MeasurementStore:
         print('          path = {} \n'.format(path))
         print('          Name = {} \n'.format(Name))
         if Name == None:
-            #print(' None')
             ml_file = '{}/measurement_list.pickle'.format(path)
 
             with open(ml_file, 'wb') as f:
@@ -625,9 +605,6 @@ class MeasurementStore:
 
         else:
             ml_file = '{}/measureL_{}.pickle'.format(path, Name)
-
-            #print('Name = {},  label_list = {}'.format(Name, label_list))
-            #print('  measurement_list = {}'.format(measurement_list))
 
             with open(ml_file, 'wb') as f:
                 pickle.dump([Name, label_list, measurement_list], f)
@@ -655,11 +632,6 @@ class MeasurementStore:
 
         self.label_list = label_list
         self.data_dict  = data_dict
-        #print('  saveInOne  -->  labels = {}'.format(self.labels))
-        #print('label_list = {}'.format(label_list))
-        #print('measurement_dict = {}'.format(self.measurement_dict))
-        #print('data_dict = {}'.format(data_dict))
-
 
         # --------  save files ---------------- #   
         if Name == None:
@@ -674,7 +646,6 @@ class MeasurementStore:
             Fname = '{}/count_dict.pickle'.format(path)
 
             with open(Fname, 'wb') as f:
-                #pickle.dump(self.measurement_dict, f)
                 pickle.dump(data_dict, f)
             print('      ***   count_dict file = {} is dumped (i.e. saved) \n'.format(Fname))
 
@@ -722,7 +693,6 @@ class MeasurementStore:
 
         if labels == None:
             labels = cls.load_labels_from_file(path)
-            #print(' loaded labels = {}'.format(labels))
 
         Fname = '{}/count_dict.pickle'.format(path)
         print('  --->   Loading count_dict from {}\n'.format(Fname))
@@ -818,10 +788,6 @@ class MeasurementStore:
             num_leading_symbols = len(aname)
         else:
             num_leading_symbols = 0
-
-        #print('num_leading_symbols = {}'.format(num_leading_symbols))
-        #print(' apath  =  {}'.format(apath))
-        #print(' is a directory ?? {}'.format(os.path.isdir(apath)))
 
         # load the store
         measurements = [Measurement.load(path, label, num_leading_symbols) for label in labels]
