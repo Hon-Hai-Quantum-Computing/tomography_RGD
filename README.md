@@ -1,7 +1,7 @@
 # Overview
 
 1. The program uses the optimization method of Riemannian Gradient Descent (RGD) algorithm to do the tomography problem.
-   The implementation follows from the arXiv:2210.04717
+   The implementation follows from the arXiv:2210.04717, which was published in Phys. Rev. Lett. 132, 240804
 
 2. Compare the optimization method of Momentum-inspired Factorized Gradient Descent (MiFGD). 
 
