@@ -298,7 +298,7 @@ def Tomography_over_measurement(params_setup, target_DM, input_S, \
 
     return Ttot, Wk_dict, params_setup, T_rec
 
-def Rec_Info(Ttot, Wk_dict, params_setup, T_rec):
+def Rec_Info(Ttot, Wk_dict, params_setup, T_rec, Ncpu_Pj):
     """ To record information about each measurement case and all the methods applied to it
 
     Args:
@@ -465,7 +465,7 @@ def Default_Setting_Run_Tomography(params_setup, target_density_matrix,\
     Ttot, Wk_dict, params_setup, T_rec = \
         Tomography_over_measurement(params_setup, target_density_matrix, \
                              input_S, pm_RGD, pm_MiFGD, T_rec)
-    Rec_Info(Ttot, Wk_dict, params_setup, T_rec)
+    Rec_Info(Ttot, Wk_dict, params_setup, T_rec, Ncpu_Pj)
 
     DirRho         = params_setup['DirRho']
     T_Rho[DirRho]  = Ttot
@@ -551,7 +551,7 @@ def Tune_Kappa_Tomography(params_setup, target_density_matrix, input_S, T_rec, N
             Ttot, Wk_dict, params_setup, T_rec = \
                 Tomography_over_measurement(params_setup, NewRho, \
                                         input_S, pm_RGD, pm_MiFGD, T_rec)
-            Rec_Info(Ttot, Wk_dict, params_setup, T_rec)
+            Rec_Info(Ttot, Wk_dict, params_setup, T_rec, Ncpu_Pj)
 
             DirRho               = params_setup['DirRho']
 

@@ -94,12 +94,13 @@ def Run_measurement_dict(Nk, mea, StateName, meas_path, Run_method=1):
             params = '{} {} {} {} {} '.format(Nk, mea, StateName, meas_path, file)
             Rec    = '{}/Rec_qiskit_meas_dict_{}.txt'.format(meas_path, file[10:])
             
-            cmd    = 'python parallel_measurements.py {} > {} &'.format(params, Rec)
+            #cmd    = 'python parallel_measurements.py {} > {} &'.format(params, Rec)    # only if wait working  (Linux)
+            cmd    = 'python parallel_measurements.py {} > {} '.format(params, Rec)      # if wait not working   (Mac)
 
             print('cmd = {}'.format(cmd))
             os.system(cmd)
 
-        os.system('wait')
+        os.system('wait')       #  seems not working in Mac
 
     elif Run_method == 1:
         method_Name = 'parallel CPU measurement_dict (Run.measure.sh)'
@@ -442,7 +443,8 @@ def Get_measurement_by_labels(params_setup, label_list, T_rec):
 
         elif StateName == 'GHZ' or StateName == 'Had':
             Run_measure = 0  # control parameter for parallel computation (default 1 for running bash script in Linux)
-                             # set to 0 if the bash script cannot be run in the (Windows) system
+                             # set to 0 if the bash script cannot be run in the (Windows, Mac) system
+                             #          since taskset only exists for Linux system
             t_parallel, num_cpus = Pure_state_measure(params_setup, label_list, measure_method, Run_measure)
             T_rec['parallel_measure'] = t_parallel
 

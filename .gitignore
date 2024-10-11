@@ -3,6 +3,7 @@ old/*.py
 quQST/old/*.py
 quQST/states_qiskit_v013.py
 quQST/testData
+quQST/.DS_Store
 Load_workers.py
 *.txt
 test_*.py
@@ -13,6 +14,7 @@ main_QST_test.py
 exampleRun_v*.ipynb
 fig/
 DataTest/
+.DS_Store
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
