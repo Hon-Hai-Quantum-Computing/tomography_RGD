@@ -45,15 +45,16 @@ The default value of Dir0 is ./calc.
                   or     call  basic_sys_setting(Choose) @  Input_setting.py
 ```
 
-   - StateName  =  'GHZ',  'Had',  'rand'   (where 'GHZ' and 'Had' are pure states)
+    - (eg) State_version = { 'StateName': 'GHZ',        #  = 'GHZ', 'Had', 'rand', 'KapRnd'
+                      'Nr': 1,                    #  rank: 'GHZ', 'Had' --> only allow Nr =1 
+                      'Generate New rand': 1,     #  (only for 'rand', 'KapRnd') 1: generate new data |  0: load existing data
+                      'rand matrix version': 1,   #  (only for 'rand', 'KapRnd') version for random matrices  
+                      'List_alpha': [5, 7, 10]    #  only for 'KapRnd' to tune Kappa (not needed for other states)
+    }
 
-   - Nr  =   number of rank  [  fixed to 1   for  'GHZ', 'Had'   ]
-   
-   - Noise   =   noise model  [only needed for mixed sates]
-      - only implementing exact results now, i.e. not really implemented in the code
-      -  different types for different states, i.e.
-         -  pure states: = 0            (GHZ or Had)
-         -  'rand':      = [0, 0, 0.1]  (actually no effect now) 
+      - StateName  =  'GHZ',  'Had',  'rand'   (where 'GHZ' and 'Had' are pure states)
+
+      - Nr  =   number of rank  [  fixed to 1   for  'GHZ', 'Had'   ]
 
 2.  controlling parameters for each cases, i.e.  labelling each running case
    - Notes for loading or generating sampled Pauli matrices & measurements 
@@ -63,19 +64,13 @@ The default value of Dir0 is ./calc.
          - using qutip package: direct exact calculation for mixed states  
          - Note the measurements for pure states & mixed states are different for the treatment now                           
 
-	- StVer   = version control of the 'rand' state generation   
-      - 'pure states': 0, i.e.  no need of this parameter
-      - 'rand': list of [which version of generated data, to generate or not], i.e.
-         - [1, 0] = [version 1, do not generate] 
-         - [1, 1] = [version 1, generate a new one]         
+   - (eg) Version_Def = { 
+        'Gen New Proj sampling': 1,     #  -1: specify fixed list, 1: generate sampling, 0: load existing sampled Pauli operators
+        'Proj version': 1,              #  counting projector version number
+        'Gen New Measure': 1,           #  1: generate new shot/calculated measure, 0: load existing 
+        'measure version': 2,           #  counting measure version number
+    }
 
-	- version =  [version of sampled Pauli operators, version of generated measurement,  Noise]
-      - version[0] =  version of sampled Projectors             
-      - version[1] =  version of measurement                          
-      - version[2] =  specification of Noise                                
-      - each version will have separate directory
-         - if loading Proj/measurement  --> will check if directory exists 
-         - if generating new Pj/measure --> will create new directory     
 
 3.  program control parameters for projectors | measurement
 
@@ -102,26 +97,6 @@ The default value of Dir0 is ./calc.
    - Dir_proj = directory of storing projectors
    - Dir_meas = directory of storing measurement results
 
-5.  New_Pj_shot = [how to obtain sampled Pauli operator, how to have measurements]
-   - default usage:
-      - New_Pj_shot = [1, 1] : creating new Projector & measurement  
-      - Caveat: other choice of New_Pj_shot must be consistent with Data_In, existing directory specified (Directory of Rho, projectors, measurements), etc.
-
-   - New_Pj_shot[0] = specify how to obtain the sampled Pauli operators
-      - = 0  loading sampled projectors              
-      - = 1  creating new sampled projectors    
-            (if the version already exists, then the version New_Pj_shot[0] will +1 automatically)
-      - = -1  Pauli operators generated from single & nearest-neighbor site Pauli matrices 
-      - =  2  combining each Pj_list_xx.pickle into single file first 
-    
-   - New_Pj_shot[1] = specify how to obtain the measured results
-      - = 0  loading measurement result from file                   
-      - = 1  doing measurement (qiskit shot or qutip calculation)    
-              (if the version already exists, then the version New_Pj_shot[1] will +1 automatically)
-      - = 2  converting shot measured data_dict into the coef needed, 
-            where measurement_list = the coef of each Pauli obs
-            (no longer maintained -> may need check)
-
 
 ## Calling the optimization method
 
@@ -130,11 +105,15 @@ The default value of Dir0 is ./calc.
    - RGD_optRun.py     for  RGD  method
 
 2. In MiFGD_otpRun.py, execute 
-   - worker = methodsMiFGD.BasicWorker(params_dict, input_S)
-   - worker.compute(InitX_MiFGD, Ld_MiFGD)
+   - worker = methodsMiFGD.BasicWorker(params_dict)
+   - worker.compute(InitX_MiFGD)
 
-3. main_QST is the example to do the optimization over prepared measured y from the target_density_matrix. Feel free to do the same process by directly calling each necessary ingredient, 
-   - as long as all the data are prepared in the specified directories.
+3. In RGD_optRun.py, execute
+   - worker = methodsRGD.BasicWorkerRGD(params_dict)
+   - worker.computeRGD(InitX_RGD, Ch_svd, Md_tr, Md_alp, Md_sig)
+
+4. main_QST.py is the example to do the optimization over prepared measured y from the target_density_matrix. 
+   - Feel free to do the same process by directly calling each necessary ingredient, as long as all the data are prepared in the specified directories.
    - The path for the saving/loading the projectors and measured y can be different
 
 
